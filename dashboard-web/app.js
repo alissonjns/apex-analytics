@@ -73,16 +73,22 @@ function extractRow(matrix, keyword, startRow = 0, endRow = null) {
 function processWorkbook(workbook) {
     let results = { data: {}, insights: {} };
     
-    let wsNovoFormato = workbook.Sheets['7 - Receitas '];
+    let targetSheetName = workbook.SheetNames.find(n => n.includes('Receitas'));
+    let wsNovoFormato = targetSheetName ? workbook.Sheets[targetSheetName] : null;
     
     if (wsNovoFormato) {
         let matrix = XLSX.utils.sheet_to_json(wsNovoFormato, {header: 1, raw: true, defval: null});
         
         let yearAnchors = [];
         for (let r = 0; r < matrix.length; r++) {
-            let cell = matrix[r][1]; // Coluna B (índice 1)
-            if (cell && (cell === 2023 || cell === 2024 || cell === 2025 || cell === 2026 || cell === '2023' || cell === '2024' || cell === '2025' || cell === '2026')) {
-                yearAnchors.push({ year: cell.toString(), row: r });
+            let row = matrix[r];
+            if (!row) continue;
+            let yearFound = row.find(cell => cell === 2023 || cell === 2024 || cell === 2025 || cell === 2026 || cell === '2023' || cell === '2024' || cell === '2025' || cell === '2026');
+            if (yearFound) {
+                let colIdx = row.indexOf(yearFound);
+                if (colIdx <= 2) { // Garante que o ano está nas primeiras colunas, evitando falsos positivos
+                    yearAnchors.push({ year: yearFound.toString(), row: r });
+                }
             }
         }
 
