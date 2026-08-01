@@ -73,7 +73,7 @@ function extractRow(matrix, keyword, startRow = 0, endRow = null) {
 function processWorkbook(workbook) {
     let results = { data: {}, insights: {} };
     
-    ['Receita 2024', 'Receita 2025'].forEach(sheetName => {
+    workbook.SheetNames.filter(name => name.startsWith('Receita ')).forEach(sheetName => {
         let ws = workbook.Sheets[sheetName];
         if (!ws) return;
         let matrix = XLSX.utils.sheet_to_json(ws, {header: 1, raw: true, defval: null});
