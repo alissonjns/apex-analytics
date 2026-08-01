@@ -21,13 +21,12 @@ uploaded = files.upload()
 # Pegando o nome exato do arquivo que foi enviado
 file_name = list(uploaded.keys())[0]
 
-# 3. Carregando os Dados (Leitura Dinâmica de Todos os Anos)
+# 3. Carregando os Dados (Leitura Dinâmica Multiformato)
 xls = pd.ExcelFile(io.BytesIO(uploaded[file_name]))
-sheet_names = [s for s in xls.sheet_names if str(s).startswith('Receita ')]
 
-# Função auxiliar para rastrear as linhas na planilha
-def extract_row(df, keyword):
-    for r in range(len(df)):
+# Função auxiliar para rastrear as linhas na planilha estritamente dentro de um bloco
+def extract_row_bounded(df, keyword, start_idx, end_idx):
+    for r in range(start_idx, end_idx):
         row = df.iloc[r]
         for c, val in enumerate(row):
             if isinstance(val, str) and val.lower().strip() == keyword:
@@ -44,30 +43,56 @@ def extract_row(df, keyword):
                 return data
     return [0]*12
 
-# 4. Extraindo as métricas para todos os anos
+# 4. Extraindo as métricas
 total_antecipacao = 0
 total_ro = 0
 vendas_ano_mais_recente = []
 ro_ano_mais_recente = []
 antecip_ano_mais_recente = []
-ultimo_ano = sheet_names[-1] # Pega a última aba (ex: Receita 2026)
+ultimo_ano = ""
 
-for sheet in sheet_names:
-    df = pd.read_excel(io.BytesIO(uploaded[file_name]), sheet_name=sheet, header=None)
-    
-    ro = extract_row(df, 'ro')
-    if sum(ro) == 0: ro = extract_row(df, 'rlo')
-    
-    antecip = extract_row(df, 'taxa antecipação')
-    
-    total_antecipacao += sum(antecip)
-    total_ro += sum(ro)
-    
-    # Salva os dados específicos do ano mais recente para plotar o gráfico
-    if sheet == ultimo_ano:
-        vendas_ano_mais_recente = extract_row(df, 'vendas')
-        ro_ano_mais_recente = ro
-        antecip_ano_mais_recente = antecip
+if '7 - Receitas ' in xls.sheet_names:
+    df = pd.read_excel(io.BytesIO(uploaded[file_name]), sheet_name='7 - Receitas ', header=None)
+    year_anchors = []
+    for r in range(len(df)):
+        val = df.iloc[r, 1] # Coluna B
+        if val in [2023, 2024, 2025, 2026, '2023', '2024', '2025', '2026']:
+            year_anchors.append({'year': str(val), 'row': r})
+            
+    for i, anchor in enumerate(year_anchors):
+        start_row = anchor['row']
+        end_row = year_anchors[i+1]['row'] if i < len(year_anchors)-1 else len(df)
+        year = anchor['year']
+        ultimo_ano = year
+        
+        ro = extract_row_bounded(df, 'ro', start_row, end_row)
+        if sum(ro) == 0: ro = extract_row_bounded(df, 'rlo', start_row, end_row)
+        antecip = extract_row_bounded(df, 'taxa antecipação', start_row, end_row)
+        
+        total_antecipacao += sum(antecip)
+        total_ro += sum(ro)
+        
+        if i == len(year_anchors) - 1:
+            vendas_ano_mais_recente = extract_row_bounded(df, 'vendas', start_row, end_row)
+            ro_ano_mais_recente = ro
+            antecip_ano_mais_recente = antecip
+else:
+    sheet_names = [s for s in xls.sheet_names if str(s).startswith('Receita ')]
+    if sheet_names:
+        ultimo_ano = sheet_names[-1].replace('Receita ', '')
+    for sheet in sheet_names:
+        df = pd.read_excel(io.BytesIO(uploaded[file_name]), sheet_name=sheet, header=None)
+        ro = extract_row_bounded(df, 'ro', 0, len(df))
+        if sum(ro) == 0: ro = extract_row_bounded(df, 'rlo', 0, len(df))
+        antecip = extract_row_bounded(df, 'taxa antecipação', 0, len(df))
+        
+        total_antecipacao += sum(antecip)
+        total_ro += sum(ro)
+        
+        if sheet == sheet_names[-1]:
+            vendas_ano_mais_recente = extract_row_bounded(df, 'vendas', 0, len(df))
+            ro_ano_mais_recente = ro
+            antecip_ano_mais_recente = antecip
 
 meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
 
