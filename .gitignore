@@ -1,0 +1,4 @@
+# Ignorar arquivos sensíveis
+*.xlsx
+*.xls
+*.csv

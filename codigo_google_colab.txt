@@ -1,0 +1,90 @@
+# 1. Instalação e Importação (Garantimos o openpyxl para o Excel)
+!pip install openpyxl -q
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
+import warnings
+from google.colab import files
+import io
+
+warnings.filterwarnings('ignore')
+
+# Configuração visual premium para os gráficos ficarem de alto nível
+plt.style.use('dark_background')
+sns.set_palette("husl")
+
+# 2. Upload Interativo (Específico para Google Colab)
+print("Selecione a planilha de receitas do seu computador:")
+uploaded = files.upload()
+
+# Pegando o nome exato do arquivo que foi enviado
+file_name = list(uploaded.keys())[0]
+
+# 3. Carregando os Dados
+df_2024 = pd.read_excel(io.BytesIO(uploaded[file_name]), sheet_name='Receita 2024', header=None)
+df_2025 = pd.read_excel(io.BytesIO(uploaded[file_name]), sheet_name='Receita 2025', header=None)
+
+# Função auxiliar para rastrear as linhas na planilha
+def extract_row(df, keyword):
+    for r in range(len(df)):
+        row = df.iloc[r]
+        for c, val in enumerate(row):
+            if isinstance(val, str) and val.lower().strip() == keyword:
+                data = []
+                for i in range(c + 1, len(row)):
+                    v = row.iloc[i]
+                    if pd.notna(v):
+                        if isinstance(v, str):
+                            try: v = float(v.replace('R$', '').replace('.', '').replace(',', '.').strip())
+                            except: continue
+                        data.append(v)
+                    if len(data) == 12: break
+                while len(data) < 12: data.append(0)
+                return data
+    return [0]*12
+
+# 4. Extraindo as métricas
+vendas_24 = extract_row(df_2024, 'vendas')
+ro_24 = extract_row(df_2024, 'ro')
+if sum(ro_24) == 0: ro_24 = extract_row(df_2024, 'rlo')
+antecip_24 = extract_row(df_2024, 'taxa antecipação')
+
+vendas_25 = extract_row(df_2025, 'vendas')
+ro_25 = extract_row(df_2025, 'rlo')
+antecip_25 = extract_row(df_2025, 'taxa antecipação')
+
+meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+
+# 5. O GRANDE ACHADO: Cálculo do Ralo Invisível
+total_antecipacao = sum(antecip_24) + sum(antecip_25)
+total_ro = sum(ro_24) + sum(ro_25)
+impacto_pct = (total_antecipacao / total_ro) * 100 if total_ro > 0 else 0
+
+print("\n" + "="*50)
+print(f"🚨 ALERTA DE DRENAGEM DE CAIXA 🚨")
+print("="*50)
+print(f"Total perdido em Taxas de Antecipação: R$ {total_antecipacao:,.2f}")
+print(f"Isso consumiu {impacto_pct:.2f}% de todo o Lucro Operacional (RO) do período.")
+print("="*50 + "\n")
+
+# 6. Demonstração Visual 1: Gráfico de Drenagem (2024)
+plt.figure(figsize=(12, 5))
+sns.barplot(x=meses, y=antecip_24, color='red', alpha=0.8)
+plt.title('Drenagem Mensal de Caixa: Taxas de Antecipação (2024)', fontsize=14, color='white')
+plt.ylabel('Valor Perdido (R$)', color='white')
+plt.xlabel('Meses', color='white')
+plt.grid(axis='y', alpha=0.2)
+plt.show()
+
+print("\n")
+
+# 7. Demonstração Visual 2: Vendas Brutas vs Lucro Real
+plt.figure(figsize=(12, 5))
+plt.plot(meses, vendas_24, marker='o', label='Faturamento Bruto (Vendas)', color='#3b82f6', linewidth=2)
+plt.plot(meses, ro_24, marker='s', label='Lucro Real (RO)', color='#10b981', linewidth=2)
+plt.title('A Ilusão do Faturamento: Vendas Brutas vs Lucro que sobra no Caixa (2024)', fontsize=14, color='white')
+plt.ylabel('Valores em R$', color='white')
+plt.legend()
+plt.grid(alpha=0.2)
+plt.show()
