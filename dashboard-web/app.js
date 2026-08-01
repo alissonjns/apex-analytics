@@ -73,39 +73,87 @@ function extractRow(matrix, keyword, startRow = 0, endRow = null) {
 function processWorkbook(workbook) {
     let results = { data: {}, insights: {} };
     
-    workbook.SheetNames.filter(name => name.startsWith('Receita ')).forEach(sheetName => {
-        let ws = workbook.Sheets[sheetName];
-        if (!ws) return;
-        let matrix = XLSX.utils.sheet_to_json(ws, {header: 1, raw: true, defval: null});
+    let wsNovoFormato = workbook.Sheets['7 - Receitas '];
+    
+    if (wsNovoFormato) {
+        let matrix = XLSX.utils.sheet_to_json(wsNovoFormato, {header: 1, raw: true, defval: null});
         
-        // Separa Loja de Delivery
-        let deliveryRow = -1;
+        let yearAnchors = [];
         for (let r = 0; r < matrix.length; r++) {
-            if (matrix[r].some(cell => typeof cell === 'string' && cell.toLowerCase().includes('delivery'))) {
-                deliveryRow = r; break;
+            let cell = matrix[r][1]; // Coluna B (índice 1)
+            if (cell && (cell === 2023 || cell === 2024 || cell === 2025 || cell === 2026 || cell === '2023' || cell === '2024' || cell === '2025' || cell === '2026')) {
+                yearAnchors.push({ year: cell.toString(), row: r });
             }
         }
 
-        let vendas = extractRow(matrix, 'vendas', 0, deliveryRow > -1 ? deliveryRow : null);
-        let fluxo = extractRow(matrix, 'fluxo', 0, deliveryRow > -1 ? deliveryRow : null);
-        let tm = extractRow(matrix, 'tm', 0, deliveryRow > -1 ? deliveryRow : null);
-        
-        let despesas = extractRow(matrix, 'despesas');
-        let ro = extractRow(matrix, 'ro');
-        if (ro.filter(x => x===null).length === 12) ro = extractRow(matrix, 'rlo');
-        
-        let taxa_cartao = extractRow(matrix, 'taxa cartão');
-        if (taxa_cartao.filter(x => x===null).length === 12) taxa_cartao = extractRow(matrix, 'taxa cartao');
-        
-        let taxa_antecip = extractRow(matrix, 'taxa antecipação');
-        if (taxa_antecip.filter(x => x===null).length === 12) taxa_antecip = extractRow(matrix, 'taxa antecipacao');
-        
-        let deliv_vendas = deliveryRow > -1 ? extractRow(matrix, 'vendas', deliveryRow) : Array(12).fill(null);
+        for (let i = 0; i < yearAnchors.length; i++) {
+            let year = yearAnchors[i].year;
+            let startRow = yearAnchors[i].row;
+            let endRow = (i < yearAnchors.length - 1) ? yearAnchors[i+1].row : matrix.length;
 
-        results.data[sheetName.replace('Receita ', '')] = {
-            vendas, fluxo, tm, despesas, ro, taxa_cartao, taxa_antecipacao: taxa_antecip, delivery_vendas: deliv_vendas
-        };
-    });
+            let deliveryRow = -1;
+            for (let r = startRow; r < endRow; r++) {
+                if (matrix[r].some(cell => typeof cell === 'string' && cell.toLowerCase().includes('delivery'))) {
+                    deliveryRow = r; break;
+                }
+            }
+
+            let limitVendas = deliveryRow > -1 ? deliveryRow : endRow;
+            let vendas = extractRow(matrix, 'vendas', startRow, limitVendas);
+            let fluxo = extractRow(matrix, 'fluxo', startRow, limitVendas);
+            let tm = extractRow(matrix, 'tm', startRow, limitVendas);
+            
+            let despesas = extractRow(matrix, 'despesas', startRow, endRow);
+            let ro = extractRow(matrix, 'ro', startRow, endRow);
+            if (ro.filter(x => x===null).length === 12) ro = extractRow(matrix, 'rlo', startRow, endRow);
+            
+            let taxa_cartao = extractRow(matrix, 'taxa cartão', startRow, endRow);
+            if (taxa_cartao.filter(x => x===null).length === 12) taxa_cartao = extractRow(matrix, 'taxa cartao', startRow, endRow);
+            
+            let taxa_antecip = extractRow(matrix, 'taxa antecipação', startRow, endRow);
+            if (taxa_antecip.filter(x => x===null).length === 12) taxa_antecip = extractRow(matrix, 'taxa antecipacao', startRow, endRow);
+            
+            let deliv_vendas = deliveryRow > -1 ? extractRow(matrix, 'vendas', deliveryRow, endRow) : Array(12).fill(null);
+
+            results.data[year] = {
+                vendas, fluxo, tm, despesas, ro, taxa_cartao, taxa_antecipacao: taxa_antecip, delivery_vendas: deliv_vendas
+            };
+        }
+    } else {
+        workbook.SheetNames.filter(name => name.startsWith('Receita ')).forEach(sheetName => {
+            let ws = workbook.Sheets[sheetName];
+            if (!ws) return;
+            let matrix = XLSX.utils.sheet_to_json(ws, {header: 1, raw: true, defval: null});
+            
+            // Separa Loja de Delivery
+            let deliveryRow = -1;
+            for (let r = 0; r < matrix.length; r++) {
+                if (matrix[r].some(cell => typeof cell === 'string' && cell.toLowerCase().includes('delivery'))) {
+                    deliveryRow = r; break;
+                }
+            }
+
+            let vendas = extractRow(matrix, 'vendas', 0, deliveryRow > -1 ? deliveryRow : null);
+            let fluxo = extractRow(matrix, 'fluxo', 0, deliveryRow > -1 ? deliveryRow : null);
+            let tm = extractRow(matrix, 'tm', 0, deliveryRow > -1 ? deliveryRow : null);
+            
+            let despesas = extractRow(matrix, 'despesas');
+            let ro = extractRow(matrix, 'ro');
+            if (ro.filter(x => x===null).length === 12) ro = extractRow(matrix, 'rlo');
+            
+            let taxa_cartao = extractRow(matrix, 'taxa cartão');
+            if (taxa_cartao.filter(x => x===null).length === 12) taxa_cartao = extractRow(matrix, 'taxa cartao');
+            
+            let taxa_antecip = extractRow(matrix, 'taxa antecipação');
+            if (taxa_antecip.filter(x => x===null).length === 12) taxa_antecip = extractRow(matrix, 'taxa antecipacao');
+            
+            let deliv_vendas = deliveryRow > -1 ? extractRow(matrix, 'vendas', deliveryRow) : Array(12).fill(null);
+
+            results.data[sheetName.replace('Receita ', '')] = {
+                vendas, fluxo, tm, despesas, ro, taxa_cartao, taxa_antecipacao: taxa_antecip, delivery_vendas: deliv_vendas
+            };
+        });
+    }
 
     // Insights Engine
     let total_antecip = 0;
