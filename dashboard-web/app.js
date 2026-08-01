@@ -48,22 +48,25 @@ function cleanVal(x) {
 }
 
 function extractRow(matrix, keyword, startRow = 0, endRow = null) {
-    keyword = keyword.toLowerCase().trim();
     let limit = endRow ? endRow : matrix.length;
     for (let r = startRow; r < limit; r++) {
         let row = matrix[r];
         if (!row) continue;
         for (let c = 0; c < row.length; c++) {
-            let val = row[c];
-            if (typeof val === 'string' && val.toLowerCase().trim() === keyword) {
-                let data = [];
-                for (let i = c + 1; i < row.length; i++) {
-                    let v = cleanVal(row[i]);
-                    if (v !== null || (data.length > 0 && data.length < 12)) data.push(v);
-                    if (data.length === 12) break;
+            let cell = row[c];
+            if (typeof cell === 'string') {
+                let cleanCell = cell.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, '');
+                let cleanKey = keyword.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, '');
+                if (cleanCell === cleanKey || (cleanKey.includes('antecipa') && cleanCell.includes('antecipa')) || (cleanKey.includes('cart') && cleanCell.includes('cart'))) {
+                    let data = [];
+                    for (let i = c + 1; i < row.length; i++) {
+                        let v = cleanVal(row[i]);
+                        if (v !== null || (data.length > 0 && data.length < 12)) data.push(v);
+                        if (data.length === 12) break;
+                    }
+                    while (data.length < 12) data.push(null);
+                    return data;
                 }
-                while (data.length < 12) data.push(null);
-                return data;
             }
         }
     }
