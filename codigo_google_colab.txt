@@ -21,9 +21,9 @@ uploaded = files.upload()
 # Pegando o nome exato do arquivo que foi enviado
 file_name = list(uploaded.keys())[0]
 
-# 3. Carregando os Dados
-df_2024 = pd.read_excel(io.BytesIO(uploaded[file_name]), sheet_name='Receita 2024', header=None)
-df_2025 = pd.read_excel(io.BytesIO(uploaded[file_name]), sheet_name='Receita 2025', header=None)
+# 3. Carregando os Dados (Leitura Dinâmica de Todos os Anos)
+xls = pd.ExcelFile(io.BytesIO(uploaded[file_name]))
+sheet_names = [s for s in xls.sheet_names if str(s).startswith('Receita ')]
 
 # Função auxiliar para rastrear as linhas na planilha
 def extract_row(df, keyword):
@@ -44,34 +44,47 @@ def extract_row(df, keyword):
                 return data
     return [0]*12
 
-# 4. Extraindo as métricas
-vendas_24 = extract_row(df_2024, 'vendas')
-ro_24 = extract_row(df_2024, 'ro')
-if sum(ro_24) == 0: ro_24 = extract_row(df_2024, 'rlo')
-antecip_24 = extract_row(df_2024, 'taxa antecipação')
+# 4. Extraindo as métricas para todos os anos
+total_antecipacao = 0
+total_ro = 0
+vendas_ano_mais_recente = []
+ro_ano_mais_recente = []
+antecip_ano_mais_recente = []
+ultimo_ano = sheet_names[-1] # Pega a última aba (ex: Receita 2026)
 
-vendas_25 = extract_row(df_2025, 'vendas')
-ro_25 = extract_row(df_2025, 'rlo')
-antecip_25 = extract_row(df_2025, 'taxa antecipação')
+for sheet in sheet_names:
+    df = pd.read_excel(io.BytesIO(uploaded[file_name]), sheet_name=sheet, header=None)
+    
+    ro = extract_row(df, 'ro')
+    if sum(ro) == 0: ro = extract_row(df, 'rlo')
+    
+    antecip = extract_row(df, 'taxa antecipação')
+    
+    total_antecipacao += sum(antecip)
+    total_ro += sum(ro)
+    
+    # Salva os dados específicos do ano mais recente para plotar o gráfico
+    if sheet == ultimo_ano:
+        vendas_ano_mais_recente = extract_row(df, 'vendas')
+        ro_ano_mais_recente = ro
+        antecip_ano_mais_recente = antecip
 
 meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
 
 # 5. O GRANDE ACHADO: Cálculo do Ralo Invisível
-total_antecipacao = sum(antecip_24) + sum(antecip_25)
-total_ro = sum(ro_24) + sum(ro_25)
 impacto_pct = (total_antecipacao / total_ro) * 100 if total_ro > 0 else 0
 
 print("\n" + "="*50)
 print(f"🚨 ALERTA DE DRENAGEM DE CAIXA 🚨")
 print("="*50)
-print(f"Total perdido em Taxas de Antecipação: R$ {total_antecipacao:,.2f}")
+print(f"Total perdido em Taxas de Antecipação (Acumulado de todos os anos): R$ {total_antecipacao:,.2f}")
 print(f"Isso consumiu {impacto_pct:.2f}% de todo o Lucro Operacional (RO) do período.")
 print("="*50 + "\n")
 
-# 6. Demonstração Visual 1: Gráfico de Drenagem (2024)
+# 6. Demonstração Visual 1: Gráfico de Drenagem (Ano Mais Recente)
 plt.figure(figsize=(12, 5))
-sns.barplot(x=meses, y=antecip_24, color='red', alpha=0.8)
-plt.title('Drenagem Mensal de Caixa: Taxas de Antecipação (2024)', fontsize=14, color='white')
+sns.barplot(x=meses, y=antecip_ano_mais_recente, color='red', alpha=0.8)
+plt.title(f'Drenagem Mensal de Caixa: Taxas de Antecipação ({ultimo_ano})', fontsize=14, color='white')
 plt.ylabel('Valor Perdido (R$)', color='white')
 plt.xlabel('Meses', color='white')
 plt.grid(axis='y', alpha=0.2)
@@ -79,11 +92,11 @@ plt.show()
 
 print("\n")
 
-# 7. Demonstração Visual 2: Vendas Brutas vs Lucro Real
+# 7. Demonstração Visual 2: Vendas Brutas vs Lucro Real (Ano Mais Recente)
 plt.figure(figsize=(12, 5))
-plt.plot(meses, vendas_24, marker='o', label='Faturamento Bruto (Vendas)', color='#3b82f6', linewidth=2)
-plt.plot(meses, ro_24, marker='s', label='Lucro Real (RO)', color='#10b981', linewidth=2)
-plt.title('A Ilusão do Faturamento: Vendas Brutas vs Lucro que sobra no Caixa (2024)', fontsize=14, color='white')
+plt.plot(meses, vendas_ano_mais_recente, marker='o', label='Faturamento Bruto (Vendas)', color='#3b82f6', linewidth=2)
+plt.plot(meses, ro_ano_mais_recente, marker='s', label='Lucro Real (RO)', color='#10b981', linewidth=2)
+plt.title(f'A Ilusão do Faturamento: Vendas Brutas vs Lucro que sobra no Caixa ({ultimo_ano})', fontsize=14, color='white')
 plt.ylabel('Valores em R$', color='white')
 plt.legend()
 plt.grid(alpha=0.2)
