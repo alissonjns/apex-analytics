@@ -172,6 +172,8 @@ function renderYear(year) {
     document.getElementById('kpiTM').innerText = formatMoney(avg(data.tm));
     document.getElementById('kpiFluxo').innerText = formatNum(sum(data.fluxo));
 
+    document.getElementById('valAntecipacaoAno').innerText = formatMoney(sum(data.taxa_antecipacao));
+
     updateChartVendasRO(data);
     updateChartDespesas(data);
     updateChartDelivery(data);
