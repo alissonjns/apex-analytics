@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Araujo BI | Dashboard Corporativo</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- Dependências -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+</head>
+<body>
+    <div class="glass-bg"></div>
+
+    <!-- Tela de Upload (Privacidade Total) -->
+    <div id="uploadScreen" class="upload-screen">
+        <div class="upload-card">
+            <div class="upload-icon">🔒</div>
+            <h2>Inteligência de Dados Araujo</h2>
+            <p>Selecione a planilha de receitas para processar os dados.</p>
+            <p class="privacy-note">O processamento é feito <strong>localmente no seu navegador</strong>. Nenhum dado é enviado para a internet.</p>
+            
+            <label for="excelFile" class="btn-upload">Carregar Planilha (Excel)</label>
+            <input type="file" id="excelFile" accept=".xlsx, .xls" style="display: none;">
+            <div id="loading" class="loading hidden">Processando inteligência de dados...</div>
+        </div>
+    </div>
+
+    <!-- Dashboard Principal -->
+    <div id="dashboardScreen" class="container hidden">
+        <header>
+            <div class="brand">
+                <h1>Araujo BI</h1>
+                <p>Inteligência de Dados Corporativa</p>
+            </div>
+            <div class="controls">
+                <select id="yearSelect">
+                    <option value="2025">Ano: 2025</option>
+                    <option value="2024">Ano: 2024</option>
+                </select>
+                <button id="btnExportPPTX" class="btn-export">📊 Exportar Apresentação Executiva</button>
+            </div>
+        </header>
+
+        <section class="insights-prescritivos">
+            <div class="alert-card danger">
+                <div class="icon">⚠️</div>
+                <div class="text">
+                    <h3>O Ralo Invisível</h3>
+                    <p>Você perdeu <strong id="valAntecipacao">R$ --</strong> em taxas de antecipação. Isso destruiu <strong id="pctAntecipacao">--%</strong> do seu Lucro Operacional real do período.</p>
+                </div>
+            </div>
+            <div class="alert-card success">
+                <div class="icon">📈</div>
+                <div class="text">
+                    <h3>Previsão Preditiva (ML)</h3>
+                    <p>A projeção matemática para as vendas do próximo mês é de <strong id="valPrevisao">R$ --</strong>, caso mantenha a tendência linear atual.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="kpi-grid">
+            <div class="kpi-card">
+                <h4>Faturamento Bruto (Ano)</h4>
+                <h2 id="kpiVendas">R$ --</h2>
+            </div>
+            <div class="kpi-card">
+                <h4>Resultado Operacional</h4>
+                <h2 id="kpiRO" class="text-green">R$ --</h2>
+            </div>
+            <div class="kpi-card">
+                <h4>Ticket Médio</h4>
+                <h2 id="kpiTM">R$ --</h2>
+            </div>
+            <div class="kpi-card">
+                <h4>Fluxo de Clientes</h4>
+                <h2 id="kpiFluxo">--</h2>
+            </div>
+        </section>
+
+        <section class="charts-grid">
+            <div class="chart-container">
+                <h3>Vendas vs. Resultado Operacional</h3>
+                <canvas id="chartVendasRO"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3>Composição de Despesas (Drenagem)</h3>
+                <canvas id="chartDespesas"></canvas>
+            </div>
+            <div class="chart-container span-2">
+                <h3>Vendas Loja Física vs. Delivery</h3>
+                <canvas id="chartDelivery"></canvas>
+            </div>
+        </section>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>
