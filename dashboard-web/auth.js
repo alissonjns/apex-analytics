@@ -1,5 +1,5 @@
 function getToken() {
-    return localStorage.getItem('cognito_id_token');
+    return sessionStorage.getItem('cognito_id_token');
 }
 
 function checkAuthAndRedirect() {
@@ -7,7 +7,7 @@ function checkAuthAndRedirect() {
     const hash = window.location.hash.substring(1);
     const params = new URLSearchParams(hash);
     if (params.has('id_token')) {
-        localStorage.setItem('cognito_id_token', params.get('id_token'));
+        sessionStorage.setItem('cognito_id_token', params.get('id_token'));
         // Limpa a URL para ficar bonita
         window.history.replaceState(null, null, window.location.pathname);
         return true;
@@ -31,6 +31,6 @@ function login() {
 }
 
 function logout() {
-    localStorage.removeItem('cognito_id_token');
+    sessionStorage.removeItem('cognito_id_token');
     window.location.reload();
 }
