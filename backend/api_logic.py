@@ -1,0 +1,169 @@
+import pandas as pd
+from database import get_db_connection
+
+def clean_val(x):
+    if pd.isna(x) or x == '' or str(x).lower().strip() == 'nan':
+        return None
+    if isinstance(x, (int, float)):
+        return x
+    if isinstance(x, str):
+        try:
+            return float(x)
+        except ValueError:
+            pass
+        s = x.replace('R$', '').replace('.', '').replace(',', '.').strip()
+        try:
+            return float(s)
+        except ValueError:
+            return None
+    return None
+
+def extract_row(matrix, keyword, start_row=0, end_row=None):
+    import unicodedata
+    def normalize_str(s):
+        if not isinstance(s, str):
+            return ""
+        s = unicodedata.normalize('NFD', str(s).lower())
+        s = ''.join(c for c in s if unicodedata.category(c) != 'Mn')
+        return ''.join(c for c in s if c.isalnum())
+    
+    clean_key = normalize_str(keyword)
+    limit = end_row if end_row else len(matrix)
+    
+    for r in range(start_row, limit):
+        row = matrix[r]
+        for c, cell in enumerate(row):
+            if isinstance(cell, str):
+                clean_cell = normalize_str(cell)
+                if (clean_cell == clean_key or 
+                    ('antecipa' in clean_key and 'antecipa' in clean_cell) or 
+                    ('cart' in clean_key and 'cart' in clean_cell)):
+                    
+                    data = []
+                    for i in range(c + 1, len(row)):
+                        v = clean_val(row[i])
+                        if v is not None or (len(data) > 0 and len(data) < 12):
+                            data.append(v)
+                        if len(data) == 12:
+                            break
+                    while len(data) < 12:
+                        data.append(None)
+                    return data
+    return [None] * 12
+
+def get_dashboard_data():
+    import awswrangler as wr
+    import os
+    
+    ATHENA_DB = "araujo_bi"
+    
+    print("Consultando dados locais (Parquet)...")
+    try:
+        # Modo Nuvem: Lê o parquet gerado pelo ETL direto do S3
+        s3_bucket = os.environ.get("S3_BUCKET_NAME", "araujo-bi-datalake")
+        s3_path = f"s3://{s3_bucket}/bronze/bronze_7_receitas_.parquet"
+        df = wr.s3.read_parquet(path=s3_path)
+    except Exception as e:
+        print(f"O arquivo ainda não existe no Data Lake ou não pôde ser lido: {e}")
+        df = pd.DataFrame()
+        
+    if df.empty:
+        return {'data': {}, 'insights': {}}
+    
+    # Convert dataframe to matrix (list of lists)
+    matrix = df.values.tolist()
+    
+    results_data = {}
+    
+    # Find year anchors
+    year_anchors = []
+    for r, row in enumerate(matrix):
+        for c, cell in enumerate(row):
+            # Limpa '.0' caso pandas tenha convertido int para float->string
+            if str(cell).replace('.0', '') in ['2023', '2024', '2025', '2026']:
+                if c <= 2:
+                    year_anchors.append({'year': str(cell).replace('.0', ''), 'row': r})
+    
+    for i in range(len(year_anchors)):
+        year = year_anchors[i]['year']
+        start_row = year_anchors[i]['row']
+        end_row = year_anchors[i+1]['row'] if i < len(year_anchors) - 1 else len(matrix)
+        
+        delivery_row = -1
+        for r in range(start_row, end_row):
+            if any(isinstance(cell, str) and 'delivery' in str(cell).lower() for cell in matrix[r]):
+                delivery_row = r
+                break
+        
+        limit_vendas = delivery_row if delivery_row > -1 else end_row
+        
+        vendas = extract_row(matrix, 'vendas', start_row, limit_vendas)
+        fluxo = extract_row(matrix, 'fluxo', start_row, limit_vendas)
+        tm = extract_row(matrix, 'tm', start_row, limit_vendas)
+        
+        despesas = extract_row(matrix, 'despesas', start_row, end_row)
+        ro = extract_row(matrix, 'ro', start_row, end_row)
+        if sum(x is None for x in ro) == 12:
+            ro = extract_row(matrix, 'rlo', start_row, end_row)
+            
+        taxa_cartao = extract_row(matrix, 'taxa cartão', start_row, end_row)
+        if sum(x is None for x in taxa_cartao) == 12:
+            taxa_cartao = extract_row(matrix, 'taxa cartao', start_row, end_row)
+            
+        taxa_antecip = extract_row(matrix, 'taxa antecipação', start_row, end_row)
+        if sum(x is None for x in taxa_antecip) == 12:
+            taxa_antecip = extract_row(matrix, 'taxa antecipacao', start_row, end_row)
+            
+        deliv_vendas = extract_row(matrix, 'vendas', delivery_row, end_row) if delivery_row > -1 else [None]*12
+        
+        results_data[year] = {
+            'vendas': vendas,
+            'fluxo': fluxo,
+            'tm': tm,
+            'despesas': despesas,
+            'ro': ro,
+            'taxa_cartao': taxa_cartao,
+            'taxa_antecipacao': taxa_antecip,
+            'delivery_vendas': deliv_vendas
+        }
+    
+    # Calculate Insights
+    total_antecip = 0
+    total_ro = 0
+    sales_history = []
+    
+    for y in sorted(results_data.keys()):
+        d = results_data[y]
+        total_antecip += sum(x for x in d['taxa_antecipacao'] if x is not None)
+        total_ro += sum(x for x in d['ro'] if x is not None)
+        sales_history.extend([x for x in d['vendas'] if x is not None])
+        
+    next_month_pred = None
+    if len(sales_history) >= 6:
+        y = sales_history[-6:]
+        n = len(y)
+        sumX = sum(range(n))
+        sumY = sum(y)
+        sumXY = sum(i * y[i] for i in range(n))
+        sumXX = sum(i * i for i in range(n))
+        
+        if (n * sumXX - sumX * sumX) != 0:
+            slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX)
+            intercept = (sumY - slope * sumX) / n
+            next_month_pred = slope * n + intercept
+            
+    impacto_antecipacao_pct = (total_antecip / total_ro * 100) if total_ro > 0 else 0
+    
+    return {
+        'data': results_data,
+        'insights': {
+            'total_antecipacao': total_antecip,
+            'total_ro': total_ro,
+            'impacto_antecipacao_pct': impacto_antecipacao_pct,
+            'previsao_proximo_mes_vendas': next_month_pred
+        }
+    }
+
+if __name__ == "__main__":
+    import json
+    print(json.dumps(get_dashboard_data(), indent=2))

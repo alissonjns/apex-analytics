@@ -3,23 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Araujo BI | Dashboard Corporativo</title>
+    <title>Apex Analytics | Dashboard Corporativo</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <!-- Dependências -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
 </head>
 <body>
     <div class="glass-bg"></div>
+    
+    <!-- Tela de Login -->
+    <div id="loginScreen" class="upload-screen hidden">
+        <div class="upload-card">
+            <div class="upload-icon">🔐</div>
+            <h2>Acesso Restrito</h2>
+            <p>Faça login com suas credenciais corporativas para acessar o BI.</p>
+            <button class="btn-upload" onclick="login()">Fazer Login Seguro</button>
+        </div>
+    </div>
 
     <!-- Tela de Upload (Privacidade Total) -->
     <div id="uploadScreen" class="upload-screen">
         <div class="upload-card">
             <div class="upload-icon">🔒</div>
-            <h2>Inteligência de Dados Araujo</h2>
-            <p>Selecione a planilha de receitas para processar os dados.</p>
+            <h2>Apex Analytics</h2>
+            <button onclick="logout()" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 5px 15px; border-radius: 5px; cursor: pointer; margin-bottom: 15px;">Sair (Renovar Sessão)</button>
+            <p>Selecione a planilha de receitas para processar os dados do seu cliente.</p>
             <p class="privacy-note">O processamento é feito <strong>localmente no seu navegador</strong>. Nenhum dado é enviado para a internet.</p>
             
             <label for="excelFile" class="btn-upload">Carregar Planilha (Excel)</label>
@@ -32,10 +45,11 @@
     <div id="dashboardScreen" class="container hidden">
         <header>
             <div class="brand">
-                <h1>Araujo BI</h1>
-                <p>Inteligência de Dados Corporativa</p>
+                <h1>Apex Analytics</h1>
+                <p>Plataforma de Inteligência de Dados</p>
             </div>
             <div class="controls">
+                <button class="btn-export" onclick="logout()" style="background: #ef4444; border-color: #ef4444;">Sair</button>
                 <select id="yearSelect">
                     <option value="2025">Ano: 2025</option>
                     <option value="2024">Ano: 2024</option>

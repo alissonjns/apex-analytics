@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  backend:
+    build: 
+      context: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      # O banco de dados SQLite será criado dentro do container, mas mapeado para a máquina local
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  # O frontend será servido pelo próprio FastAPI ou via um Nginx simples.
+  # Para portfólio, podemos usar um Nginx servindo a pasta dashboard-web
+  frontend:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./dashboard-web:/usr/share/nginx/html:ro

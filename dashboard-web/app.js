@@ -12,207 +12,114 @@ const fileInput = document.getElementById('excelFile');
 const loading = document.getElementById('loading');
 const btnExportPPTX = document.getElementById('btnExportPPTX');
 
-// File Upload Handler (100% Local)
-fileInput.addEventListener('change', (e) => {
+// API Constants
+const API_BASE = AWS_CONFIG.apiUrl;
+
+// Initialize data on load
+document.addEventListener('DOMContentLoaded', () => {
+    if (checkAuthAndRedirect()) {
+        document.getElementById('loginScreen').classList.add('hidden');
+        fetchDashboardData();
+    } else {
+        document.getElementById('loginScreen').classList.remove('hidden');
+        document.getElementById('uploadScreen').classList.add('hidden');
+        document.getElementById('dashboardScreen').classList.add('hidden');
+    }
+});
+
+// Fetch Data from Backend
+async function fetchDashboardData() {
+    try {
+        loading.classList.remove('hidden');
+        const token = getToken();
+        const res = await fetch(`${API_BASE}/api/dashboard_data`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        if (!res.ok) throw new Error("Erro na API");
+        const data = await res.json();
+        
+        if (data.error) {
+            alert("Erro do Servidor: " + data.error + "\n\n" + data.trace);
+            uploadScreen.classList.remove('hidden');
+            dashboardScreen.classList.add('hidden');
+            return;
+        }
+        
+        if (data && data.data && Object.keys(data.data).length > 0) {
+            processApiData(data);
+            uploadScreen.classList.add('hidden');
+            dashboardScreen.classList.remove('hidden');
+        } else {
+            // No data in DB yet
+            uploadScreen.classList.remove('hidden');
+            dashboardScreen.classList.add('hidden');
+        }
+    } catch (err) {
+        console.error("No database connection or empty data", err);
+        uploadScreen.classList.remove('hidden');
+        dashboardScreen.classList.add('hidden');
+    } finally {
+        loading.classList.add('hidden');
+    }
+}
+
+// File Upload Handler (Envio para o Backend Python)
+fileInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if(!file) return;
     loading.classList.remove('hidden');
 
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-        try {
-            const data = new Uint8Array(evt.target.result);
-            const workbook = XLSX.read(data, {type: 'array'});
-            processWorkbook(workbook);
-            loading.classList.add('hidden');
-            uploadScreen.classList.add('hidden');
-            dashboardScreen.classList.remove('hidden');
-        } catch (err) {
-            alert('Erro ao processar planilha: ' + err.message);
-            loading.classList.add('hidden');
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+        const token = getToken();
+        const res = await fetch(`${API_BASE}/upload`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        });
+        
+        const result = await res.json();
+        if (result.error) {
+            alert("Erro: " + result.error);
+        } else {
+            // Upload com sucesso, agora busca os dados processados!
+            await fetchDashboardData();
         }
-    };
-    reader.readAsArrayBuffer(file);
+    } catch (err) {
+        alert('Erro ao enviar planilha para o servidor: ' + err.message);
+    } finally {
+        loading.classList.add('hidden');
+        fileInput.value = ''; // reseta o input
+    }
 });
 
-// Engine JS (Substitui o Python)
-function cleanVal(x) {
-    if (x === undefined || x === null || x === '') return null;
-    if (typeof x === 'number') return isNaN(x) ? null : x;
-    if (typeof x === 'string') {
-        let s = x.replace(/R\$/gi, '').replace(/\./g, '').replace(/,/g, '.').trim();
-        let n = parseFloat(s);
-        return isNaN(n) ? null : n;
-    }
-    return null;
-}
+function processApiData(apiResponse) {
+    globalData = apiResponse;
 
-function extractRow(matrix, keyword, startRow = 0, endRow = null) {
-    let limit = endRow ? endRow : matrix.length;
-    for (let r = startRow; r < limit; r++) {
-        let row = matrix[r];
-        if (!row) continue;
-        for (let c = 0; c < row.length; c++) {
-            let cell = row[c];
-            if (typeof cell === 'string') {
-                let cleanCell = cell.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, '');
-                let cleanKey = keyword.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, '');
-                if (cleanCell === cleanKey || (cleanKey.includes('antecipa') && cleanCell.includes('antecipa')) || (cleanKey.includes('cart') && cleanCell.includes('cart'))) {
-                    let data = [];
-                    for (let i = c + 1; i < row.length; i++) {
-                        let v = cleanVal(row[i]);
-                        if (v !== null || (data.length > 0 && data.length < 12)) data.push(v);
-                        if (data.length === 12) break;
-                    }
-                    while (data.length < 12) data.push(null);
-                    return data;
-                }
-            }
-        }
-    }
-    return Array(12).fill(null);
-}
-
-function processWorkbook(workbook) {
-    let results = { data: {}, insights: {} };
-    
-    let targetSheetName = workbook.SheetNames.find(n => n.includes('Receitas'));
-    let wsNovoFormato = targetSheetName ? workbook.Sheets[targetSheetName] : null;
-    
-    if (wsNovoFormato) {
-        let matrix = XLSX.utils.sheet_to_json(wsNovoFormato, {header: 1, raw: true, defval: null});
-        
-        let yearAnchors = [];
-        for (let r = 0; r < matrix.length; r++) {
-            let row = matrix[r];
-            if (!row) continue;
-            let yearFound = row.find(cell => cell === 2023 || cell === 2024 || cell === 2025 || cell === 2026 || cell === '2023' || cell === '2024' || cell === '2025' || cell === '2026');
-            if (yearFound) {
-                let colIdx = row.indexOf(yearFound);
-                if (colIdx <= 2) { // Garante que o ano está nas primeiras colunas, evitando falsos positivos
-                    yearAnchors.push({ year: yearFound.toString(), row: r });
-                }
-            }
-        }
-
-        for (let i = 0; i < yearAnchors.length; i++) {
-            let year = yearAnchors[i].year;
-            let startRow = yearAnchors[i].row;
-            let endRow = (i < yearAnchors.length - 1) ? yearAnchors[i+1].row : matrix.length;
-
-            let deliveryRow = -1;
-            for (let r = startRow; r < endRow; r++) {
-                if (matrix[r].some(cell => typeof cell === 'string' && cell.toLowerCase().includes('delivery'))) {
-                    deliveryRow = r; break;
-                }
-            }
-
-            let limitVendas = deliveryRow > -1 ? deliveryRow : endRow;
-            let vendas = extractRow(matrix, 'vendas', startRow, limitVendas);
-            let fluxo = extractRow(matrix, 'fluxo', startRow, limitVendas);
-            let tm = extractRow(matrix, 'tm', startRow, limitVendas);
-            
-            let despesas = extractRow(matrix, 'despesas', startRow, endRow);
-            let ro = extractRow(matrix, 'ro', startRow, endRow);
-            if (ro.filter(x => x===null).length === 12) ro = extractRow(matrix, 'rlo', startRow, endRow);
-            
-            let taxa_cartao = extractRow(matrix, 'taxa cartão', startRow, endRow);
-            if (taxa_cartao.filter(x => x===null).length === 12) taxa_cartao = extractRow(matrix, 'taxa cartao', startRow, endRow);
-            
-            let taxa_antecip = extractRow(matrix, 'taxa antecipação', startRow, endRow);
-            if (taxa_antecip.filter(x => x===null).length === 12) taxa_antecip = extractRow(matrix, 'taxa antecipacao', startRow, endRow);
-            
-            let deliv_vendas = deliveryRow > -1 ? extractRow(matrix, 'vendas', deliveryRow, endRow) : Array(12).fill(null);
-
-            results.data[year] = {
-                vendas, fluxo, tm, despesas, ro, taxa_cartao, taxa_antecipacao: taxa_antecip, delivery_vendas: deliv_vendas
-            };
-        }
-    } else {
-        workbook.SheetNames.filter(name => name.startsWith('Receita ')).forEach(sheetName => {
-            let ws = workbook.Sheets[sheetName];
-            if (!ws) return;
-            let matrix = XLSX.utils.sheet_to_json(ws, {header: 1, raw: true, defval: null});
-            
-            // Separa Loja de Delivery
-            let deliveryRow = -1;
-            for (let r = 0; r < matrix.length; r++) {
-                if (matrix[r].some(cell => typeof cell === 'string' && cell.toLowerCase().includes('delivery'))) {
-                    deliveryRow = r; break;
-                }
-            }
-
-            let vendas = extractRow(matrix, 'vendas', 0, deliveryRow > -1 ? deliveryRow : null);
-            let fluxo = extractRow(matrix, 'fluxo', 0, deliveryRow > -1 ? deliveryRow : null);
-            let tm = extractRow(matrix, 'tm', 0, deliveryRow > -1 ? deliveryRow : null);
-            
-            let despesas = extractRow(matrix, 'despesas');
-            let ro = extractRow(matrix, 'ro');
-            if (ro.filter(x => x===null).length === 12) ro = extractRow(matrix, 'rlo');
-            
-            let taxa_cartao = extractRow(matrix, 'taxa cartão');
-            if (taxa_cartao.filter(x => x===null).length === 12) taxa_cartao = extractRow(matrix, 'taxa cartao');
-            
-            let taxa_antecip = extractRow(matrix, 'taxa antecipação');
-            if (taxa_antecip.filter(x => x===null).length === 12) taxa_antecip = extractRow(matrix, 'taxa antecipacao');
-            
-            let deliv_vendas = deliveryRow > -1 ? extractRow(matrix, 'vendas', deliveryRow) : Array(12).fill(null);
-
-            results.data[sheetName.replace('Receita ', '')] = {
-                vendas, fluxo, tm, despesas, ro, taxa_cartao, taxa_antecipacao: taxa_antecip, delivery_vendas: deliv_vendas
-            };
-        });
-    }
-
-    // Insights Engine
-    let total_antecip = 0;
-    let total_ro = 0;
-    let sales_history = [];
-    
-    Object.keys(results.data).sort().forEach(y => {
-        let d = results.data[y];
-        d.taxa_antecipacao.forEach(x => { if(x) total_antecip += x; });
-        d.ro.forEach(x => { if(x) total_ro += x; });
-        d.vendas.forEach(x => { if(x) sales_history.push(x); });
-    });
-
-    // Previsão Regressão Linear Simples
-    let next_month_pred = null;
-    if (sales_history.length >= 6) {
-        let y = sales_history.slice(-6);
-        let n = y.length;
-        let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
-        for (let i = 0; i < n; i++) {
-            sumX += i; sumY += y[i]; sumXY += (i * y[i]); sumXX += (i * i);
-        }
-        let slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
-        let intercept = (sumY - slope * sumX) / n;
-        next_month_pred = slope * n + intercept;
-    }
-
-    results.insights = {
-        total_antecipacao: total_antecip,
-        total_ro: total_ro,
-        impacto_antecipacao_pct: total_ro > 0 ? (total_antecip / total_ro * 100) : 0,
-        previsao_proximo_mes_vendas: next_month_pred
-    };
-
-    globalData = results;
+    // Os insights agora vêm direto do servidor, não precisamos calcular no JS!
     
     // Fill UI
-    document.getElementById('valAntecipacao').innerText = formatMoney(results.insights.total_antecipacao);
-    document.getElementById('pctAntecipacao').innerText = formatPct(results.insights.impacto_antecipacao_pct);
-    document.getElementById('valPrevisao').innerText = formatMoney(results.insights.previsao_proximo_mes_vendas);
+    document.getElementById('valAntecipacao').innerText = formatMoney(apiResponse.insights.total_antecipacao);
+    document.getElementById('pctAntecipacao').innerText = formatPct(apiResponse.insights.impacto_antecipacao_pct);
+    document.getElementById('valPrevisao').innerText = formatMoney(apiResponse.insights.previsao_proximo_mes_vendas);
 
     let select = document.getElementById('yearSelect');
     select.innerHTML = '';
-    Object.keys(results.data).sort((a,b)=>b-a).forEach(y => {
+    Object.keys(apiResponse.data).sort((a,b)=>b-a).forEach(y => {
         let opt = document.createElement('option');
         opt.value = y; opt.innerText = `Ano: ${y}`;
         select.appendChild(opt);
     });
     
-    renderYear(select.value);
+    if (select.value) {
+        renderYear(select.value);
+    }
 }
 
 // ---- Chart Logic ----
@@ -282,8 +189,8 @@ btnExportPPTX.addEventListener('click', () => {
     if(!globalData) return;
     
     let pres = new PptxGenJS();
-    pres.author = 'Araujo BI';
-    pres.company = 'Padaria Araujo';
+    pres.author = 'Apex Analytics';
+    pres.company = 'Cliente: Padaria Araujo';
     pres.title = 'Apresentação de Resultados';
     pres.layout = 'LAYOUT_16x9';
 
