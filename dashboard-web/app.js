@@ -116,7 +116,10 @@ async function fetchDashboardData() {
             saveToCache(CACHE_KEY_DASHBOARD, data); // salva no localStorage para o proximo F5
             processApiData(data);
         } else {
-            if (!cached) showUploadView(); // so vai pra upload se nao havia cache
+            // Se a API retornou vazio, significa que este tenant (ex: visitante recém logado)
+            // não tem dados. O cache antigo que foi renderizado deve ser apagado!
+            localStorage.clear();
+            showUploadView();
         }
     } catch (err) {
         console.error("Falha na API dashboard (Lambda frio?):", err);
