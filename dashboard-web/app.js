@@ -495,8 +495,8 @@ btnExportPDF.addEventListener('click', () => {
             <p>Com base no comportamento histórico e aplicando Médias Móveis Ponderadas (WMA), o sistema preditivo projeta um faturamento bruto de <strong>${formatMoney(prev)}</strong> para o próximo mês, assumindo a manutenção das condições normais de operação.</p>
         `;
     } else if (activeTab === 'view-receitas') {
-        if(!receitasDataCache || !receitasDataCache.data[year]) return alert("Dados não carregados.");
-        const data = receitasDataCache.data[year];
+        if(!receitasDataCache || !receitasDataCache[year]) return alert("Dados não carregados.");
+        const data = receitasDataCache[year];
         title = "Relatório de Receitas e Pagamentos";
         let din = sum(data.dinheiro);
         let cred = sum(data.credito);
@@ -526,8 +526,8 @@ btnExportPDF.addEventListener('click', () => {
             <p>Manter o controle rígido do CMV através de redução de desperdícios, cotação estratégica com múltiplos fornecedores e controle de estoque é o fator mais determinante para proteger o Resultado Operacional.</p>
         `;
     } else if (activeTab === 'view-rh') {
-        if(!rhDataCache || !rhDataCache.data[year]) return alert("Dados não carregados.");
-        const data = rhDataCache.data[year];
+        if(!rhDataCache || !rhDataCache[year]) return alert("Dados não carregados.");
+        const data = rhDataCache[year];
         title = "Relatório de RH e Operação";
         let folha = sum(data.folha);
         let inss = sum(data.inss);
@@ -540,8 +540,8 @@ btnExportPDF.addEventListener('click', () => {
             <p><strong>Recomendação:</strong> Fique atento à taxa de rescisão. A alta rotatividade não apenas onera o caixa da empresa como também prejudica diretamente a qualidade do atendimento, a cultura organizacional e a constância dos produtos.</p>
         `;
     } else if (activeTab === 'view-perdas') {
-        if(!perdasDataCache || !perdasDataCache.data[year]) return alert("Dados não carregados.");
-        const data = perdasDataCache.data[year];
+        if(!perdasDataCache || !perdasDataCache[year]) return alert("Dados não carregados.");
+        const data = perdasDataCache[year];
         title = "Relatório de Controle de Perdas";
         let totPerdas = sum(data.total_perdas);
         let totVendas = sum(data.total_vendas);
