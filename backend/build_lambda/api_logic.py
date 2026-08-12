@@ -20,20 +20,29 @@ import pandas as pd
 import math
 
 def clean_val(x):
-    if pd.isna(x) or x == '' or str(x).lower().strip() == 'nan':
-        return None
+    """Converte valores para float. Suporta formatos float ('805786.22'), 
+    pt-BR ('R$ 805.786,22') e inteiros. Nunca retorna None para 0."""
+    try:
+        if pd.isna(x): return None
+    except: pass
+    if x == '' or str(x).lower().strip() in ('nan', 'none'): return None
     if isinstance(x, (int, float)):
-        return x
+        return float(x)
     if isinstance(x, str):
-        try:
-            return float(x)
-        except ValueError:
-            pass
-        s = x.replace('R$', '').replace('.', '').replace(',', '.').strip()
-        try:
-            return float(s)
-        except ValueError:
-            return None
+        x = x.strip()
+        # 1. Tenta converter direto (formato float padrao: "805786.22")
+        try: return float(x)
+        except ValueError: pass
+        # 2. Remove prefixo R$ e tenta de novo
+        x2 = x.replace('R$', '').strip()
+        try: return float(x2)
+        except ValueError: pass
+        # 3. Formato pt-BR: "805.786,22" -> "805786.22"
+        # So faz isso se tiver virgula (separador decimal pt-BR)
+        if ',' in x2:
+            s = x2.replace('.', '').replace(',', '.').strip()
+            try: return float(s)
+            except ValueError: pass
     return None
 
 def extract_row(matrix, keyword, start_row=0, end_row=None):
@@ -252,25 +261,33 @@ def get_rh_data(tenant_id="visitante"):
     folha_matrix = df_folha.values.tolist()
     resc_matrix = df_resc.values.tolist()
     
-    # Extrair os anos do cabeçalho da folha
-    # A linha 0 tem os anos nas colunas 2 em diante
-    anos_linha = folha_matrix[0] if len(folha_matrix) > 0 else []
+    # Procura a linha do cabecalho com os anos (pode ser a linha 0 ou a linha 1 dependendo do ETL)
+    header_row_idx = None
     anos = []
     col_map = {}
-    for i, cell in enumerate(anos_linha):
-        if str(cell).replace('.0', '') in ['2023', '2024', '2025', '2026']:
-            ano = str(cell).replace('.0', '')
-            anos.append(ano)
-            col_map[ano] = i
-            
+    for row_idx, row in enumerate(folha_matrix[:5]):  # procura nas primeiras 5 linhas
+        for i, cell in enumerate(row):
+            if str(cell).replace('.0', '') in ['2022', '2023', '2024', '2025', '2026']:
+                if header_row_idx is None:
+                    header_row_idx = row_idx
+                ano = str(cell).replace('.0', '')
+                if ano not in anos:
+                    anos.append(ano)
+                    col_map[ano] = i
+
+    if header_row_idx is None:
+        return {'error': 'Anos nao encontrados na planilha de RH'}
+    
+    data_start = header_row_idx + 1  # linhas de dados comecam apos o cabecalho
+    
     results = {}
     for ano in anos:
         folha_meses = []
         resc_meses = []
         col_idx = col_map[ano]
         
-        # Pega linhas 1 a 12 para meses
-        for m in range(1, 13):
+        # Pega as proximas 12 linhas apos o cabecalho (JAN a DEZ)
+        for m in range(data_start, data_start + 12):
             if m < len(folha_matrix):
                 val = clean_val(folha_matrix[m][col_idx])
                 folha_meses.append(val if val is not None else 0)
@@ -283,6 +300,7 @@ def get_rh_data(tenant_id="visitante"):
             'rescisao': resc_meses
         }
     return {'data': results}
+
 
 def get_perdas_data(tenant_id="visitante"):
     import awswrangler as wr

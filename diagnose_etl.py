@@ -1,14 +1,45 @@
+"""
+Simulacao end-to-end: ETL (header=None) -> Salva parquet local -> api_logic le de volta
+Mostra exatamente o que o Lambda vai retornar para o frontend.
+"""
 import pandas as pd
 import unicodedata
+import os
+import tempfile
 
 file_path = 'base de hoje.xlsx'
 xl = pd.ExcelFile(file_path)
 
+# ===== ETAPA 1: ETL (simula o que o Lambda faz ao receber o upload) =====
+print("=" * 60)
+print("ETAPA 1: ETL - Salvando abas como parquet local")
+print("=" * 60)
+
+tmp_dir = tempfile.mkdtemp()
+parquet_files = {}
+
+sheets_of_interest = ['banco de dados', 'folha de pagamento', 'rescisoes', 'meios de pagamentos', 'perdas', 'cmv', 'receitas']
+
+for sheet in xl.sheet_names:
+    sheet_clean = sheet.lower().strip()
+    matched = any(s in sheet_clean for s in sheets_of_interest)
+    if matched:
+        df = pd.read_excel(file_path, sheet_name=sheet, header=None)  # NOVO: header=None
+        df = df.astype(str)
+        df.columns = [str(c) for c in df.columns]  # Colunas viram "0", "1", "2"...
+        table_name = "bronze_" + sheet.replace(" - ", "_").replace(" ", "_").lower()
+        table_name = ''.join(e for e in table_name if e.isalnum() or e == '_')
+        path = os.path.join(tmp_dir, f"{table_name}.parquet")
+        df.to_parquet(path, index=False)
+        parquet_files[table_name] = path
+        print(f"  Salvo: {table_name} | Shape: {df.shape}")
+
+# ===== ETAPA 2: api_logic - Le os parquets e processa =====
 def clean_val(x):
     try:
         if pd.isna(x): return None
     except: pass
-    if x == '' or str(x).lower().strip() in ('nan','none'): return None
+    if x == '' or str(x).lower().strip() in ('nan', 'none'): return None
     if isinstance(x, (int, float)): return x
     s = str(x).replace('R$', '').replace('.', '').replace(',', '.').strip()
     try: return float(s)
@@ -32,125 +63,126 @@ def extract_row(matrix, keyword, start_row=0, end_row=None):
                     (clean_cell == clean_key) or
                     ('antecipa' in clean_key and 'antecipa' in clean_cell) or
                     ('cart' in clean_key and 'cart' in clean_cell)):
-                    data = []
-                    for i in range(c + 1, min(c + 13, len(row))):
-                        data.append(clean_val(row[i]))
-                    while len(data) < 12:
-                        data.append(None)
+                    data = [clean_val(row[i]) for i in range(c + 1, min(c + 13, len(row)))]
+                    while len(data) < 12: data.append(None)
                     return data
     return [None] * 12
 
-def get_year_anchors(matrix):
+def find_parquet_local(keyword):
+    """Simula find_parquet mas usa os arquivos locais"""
+    matches = [k for k in parquet_files if keyword.lower() in k.lower()]
+    if not matches: return None
+    matches.sort(key=lambda f: len(f))
+    return parquet_files[matches[0]]
+
+def get_year_anchors(matrix, max_col=2):
     anchors = []
     for r, row in enumerate(matrix):
         for c, cell in enumerate(row):
             if str(cell).replace('.0','') in ['2022','2023','2024','2025','2026']:
-                if c <= 2:
+                if c <= max_col:
                     anchors.append({'year': str(cell).replace('.0',''), 'row': r, 'col': c})
     return anchors
 
-print("=" * 60)
-print("SIMULACAO COMPLETA: API_LOGIC vs PLANILHA")
-print("=" * 60)
-
-# Simula nomes de arquivo que o ETL vai gerar
-print("\nNOMES DE ARQUIVO GERADOS PELO ETL:")
-for sheet in xl.sheet_names:
-    table_name = "bronze_" + sheet.replace(" - ", "_").replace(" ", "_").lower()
-    table_name = ''.join(e for e in table_name if e.isalnum() or e == '_')
-    print(f"  '{sheet}' -> '{table_name}.parquet'")
-
 print()
-print("TESTE: find_parquet com keyword 'pagamento':")
-table_names = []
-for sheet in xl.sheet_names:
-    table_name = "bronze_" + sheet.replace(" - ", "_").replace(" ", "_").lower()
-    table_name = ''.join(e for e in table_name if e.isalnum() or e == '_') + ".parquet"
-    table_names.append(table_name)
+print("=" * 60)
+print("ETAPA 2: SIMULANDO get_dashboard_data (Visão Geral)")
+print("=" * 60)
 
-matches_pagamento = [f for f in table_names if 'pagamento' in f.lower()]
-print(f"  Matches para 'pagamento': {matches_pagamento}")
-matches_pagamento.sort(key=lambda f: len(f))
-print(f"  ARQUIVO RETORNADO (mais curto): {matches_pagamento[0] if matches_pagamento else 'NONE'}")
-print(f"  *** PROBLEMA? Deveria ser 'meios_de_pagamentos' mas retorna '{matches_pagamento[0] if matches_pagamento else '?'}' ***")
+p = find_parquet_local("receitas")
+df = pd.read_parquet(p)
+matrix = df.values.tolist()
+anchors = get_year_anchors(matrix)
+print(f"Anos encontrados: {[a['year'] for a in anchors]}")
 
-matches_meios = [f for f in table_names if 'meios' in f.lower()]
-print(f"\n  Matches para 'meios': {matches_meios}")
-print(f"  Arquivo correto seria: {matches_meios[0] if matches_meios else 'NONE'}")
+years_result = {}
+for i, anchor in enumerate(anchors):
+    year = anchor['year']
+    r0 = anchor['row']
+    r1 = anchors[i+1]['row'] if i < len(anchors)-1 else len(matrix)
+
+    vendas = extract_row(matrix, 'vendas', r0, r1)
+    ro = extract_row(matrix, 'ro', r0, r1)
+    if all(v is None for v in ro):
+        ro = extract_row(matrix, 'rlo', r0, r1)
+    fluxo = extract_row(matrix, 'fluxo', r0, r1)
+
+    s = lambda arr: sum(v for v in arr if v is not None)
+    print(f"  [{year}] Vendas={s(vendas):,.0f} | RO={s(ro):,.0f} | Fluxo={s(fluxo):,.0f} | {'OK' if s(vendas)>0 else 'ZERADO ❌'}")
+    years_result[year] = {'vendas': vendas, 'ro': ro}
 
 print()
 print("=" * 60)
-print("SIMULANDO TODOS OS ANOS - RECEITAS (get_dashboard_data)")
+print("ETAPA 2: SIMULANDO get_receitas_data (Aba Receitas)")
 print("=" * 60)
 
-for sheet in xl.sheet_names:
-    if 'receita' in sheet.lower().strip():
-        df = pd.read_excel(file_path, sheet_name=sheet, header=None)
-        matrix = df.values.tolist()
-        anchors = get_year_anchors(matrix)
-        print(f"Anos encontrados: {[a['year'] for a in anchors]}")
-        
-        for i, anchor in enumerate(anchors):
-            year = anchor['year']
-            r0 = anchor['row']
-            r1 = anchors[i+1]['row'] if i < len(anchors)-1 else len(matrix)
-            
-            vendas = extract_row(matrix, 'vendas', r0, r1)
-            ro = extract_row(matrix, 'ro', r0, r1)
-            if all(v is None for v in ro):
-                ro = extract_row(matrix, 'rlo', r0, r1)
-            fluxo = extract_row(matrix, 'fluxo', r0, r1)
-            
-            vendas_sum = sum(v for v in vendas if v is not None)
-            ro_sum = sum(v for v in ro if v is not None)
-            fluxo_sum = sum(v for v in fluxo if v is not None)
-            
-            status_v = "OK" if vendas_sum > 0 else "ZERADO ❌"
-            status_ro = "OK" if ro_sum != 0 else "ZERADO ❌"
-            status_f = "OK" if fluxo_sum > 0 else "ZERADO ❌"
-            
-            print(f"\n  [{year}] linhas {r0}-{r1}")
-            print(f"    vendas total: R${vendas_sum:,.2f} -> {status_v}")
-            print(f"    ro total:     R${ro_sum:,.2f}    -> {status_ro}")
-            print(f"    fluxo total:  {int(fluxo_sum)}      -> {status_f}")
-            
-            if vendas_sum == 0:
-                print(f"    Primeiras linhas desse bloco:")
-                for row in matrix[r0:r0+8]:
-                    print(f"      {[str(x)[:10] for x in row[:5]]}")
+# Usa 'meios' agora (CORRIGIDO)
+p_pag = find_parquet_local("meios")
+print(f"Arquivo de meios de pagamento encontrado: {os.path.basename(p_pag) if p_pag else 'NENHUM ❌'}")
+if p_pag:
+    df_pag = pd.read_parquet(p_pag)
+    pag_matrix = df_pag.values.tolist()
+    anchors = get_year_anchors(pag_matrix)
+    print(f"Anos encontrados: {[a['year'] for a in anchors]}")
+    for i, anchor in enumerate(anchors):
+        year = anchor['year']
+        r0, r1 = anchor['row'], anchors[i+1]['row'] if i < len(anchors)-1 else len(pag_matrix)
+        dinheiro = extract_row(pag_matrix, 'dinheiro', r0, r1)
+        pix = extract_row(pag_matrix, 'pix', r0, r1)
+        s = lambda arr: sum(v for v in arr if v is not None)
+        print(f"  [{year}] Dinheiro={s(dinheiro):,.0f} | PIX={s(pix):,.0f} | {'OK' if s(dinheiro)>0 else 'ZERADO ❌'}")
 
 print()
 print("=" * 60)
-print("SIMULANDO TODOS OS ANOS - MEIOS DE PAGAMENTO (get_receitas_data)")
+print("ETAPA 2: SIMULANDO get_rh_data")
 print("=" * 60)
 
-for sheet in xl.sheet_names:
-    if 'meios de pagamentos' in sheet.lower().strip():
-        df = pd.read_excel(file_path, sheet_name=sheet, header=None)
-        matrix = df.values.tolist()
-        anchors = get_year_anchors(matrix)
-        print(f"Anos: {[a['year'] for a in anchors]}")
-        
-        for i, anchor in enumerate(anchors):
-            year = anchor['year']
-            r0 = anchor['row']
-            r1 = anchors[i+1]['row'] if i < len(anchors)-1 else len(matrix)
-            
-            dinheiro = extract_row(matrix, 'dinheiro', r0, r1)
-            pix = extract_row(matrix, 'pix', r0, r1)
-            caderneta = extract_row(matrix, 'caderneta', r0, r1)
-            
-            din_sum = sum(v for v in dinheiro if v is not None)
-            pix_sum = sum(v for v in pix if v is not None)
-            cad_sum = sum(v for v in caderneta if v is not None)
-            
-            print(f"  [{year}] dinheiro={din_sum:,.0f}, pix={pix_sum:,.0f}, caderneta={cad_sum:,.0f}")
+p_folha = find_parquet_local("folha")
+p_resc = find_parquet_local("rescis")
+print(f"Folha encontrado: {os.path.basename(p_folha) if p_folha else 'NENHUM ❌'}")
+print(f"Rescisoes encontrado: {os.path.basename(p_resc) if p_resc else 'NENHUM ❌'}")
+
+if p_folha:
+    df_folha = pd.read_parquet(p_folha)
+    folha_matrix = df_folha.values.tolist()
+    print(f"  Linha 0 (cabeçalho esperado com anos): {[str(x)[:12] for x in folha_matrix[0][:8]]}")
+    # Procura anos em linha 0
+    anos_linha = folha_matrix[0]
+    anos = []
+    col_map = {}
+    for i, cell in enumerate(anos_linha):
+        if str(cell).replace('.0','') in ['2022','2023','2024','2025','2026']:
+            ano = str(cell).replace('.0','')
+            anos.append(ano)
+            col_map[ano] = i
+    print(f"  Anos encontrados no cabeçalho: {anos}")
+    if anos:
+        for ano in anos:
+            col_idx = col_map[ano]
+            vals = [clean_val(folha_matrix[m][col_idx]) for m in range(1, 13) if m < len(folha_matrix)]
+            total = sum(v for v in vals if v is not None)
+            print(f"  [{ano}] Total folha: {total:,.0f} | {'OK' if total > 0 else 'ZERADO ❌'}")
+    else:
+        print("  ❌ PROBLEMA: Nenhum ano encontrado no cabeçalho da folha!")
+        print("  Isso significa que o ETL antigo (header=0) perdeu a linha do ano.")
+        print("  Com o novo ETL (header=None), linha 0 deve ter os anos.")
 
 print()
 print("=" * 60)
-print("SIMULANDO RH (get_rh_data) - keywords: 'folha' e 'rescis'")
+print("ETAPA 2: SIMULANDO get_perdas_data")
 print("=" * 60)
-matches_folha = [f for f in table_names if 'folha' in f.lower()]
-matches_rescis = [f for f in table_names if 'rescis' in f.lower()]
-print(f"  Matches 'folha': {matches_folha}")
-print(f"  Matches 'rescis': {matches_rescis}")
+
+p_perdas = find_parquet_local("perdas")
+print(f"Perdas encontrado: {os.path.basename(p_perdas) if p_perdas else 'NENHUM ❌'}")
+if p_perdas:
+    df_p = pd.read_parquet(p_perdas)
+    p_matrix = df_p.values.tolist()
+    anchors = get_year_anchors(p_matrix)
+    print(f"Anos encontrados: {[a['year'] for a in anchors]}")
+    for i, anchor in enumerate(anchors):
+        year = anchor['year']
+        r0, r1 = anchor['row'], anchors[i+1]['row'] if i < len(anchors)-1 else len(p_matrix)
+        conf = extract_row(p_matrix, 'confeitaria', r0, r1)
+        total = extract_row(p_matrix, 'total', r0, r1)
+        s = lambda arr: sum(v for v in arr if v is not None)
+        print(f"  [{year}] Confeitaria={s(conf):,.0f} | Total perdas={s(total):,.0f} | {'OK' if s(total)>0 else 'ZERADO (pode ser 2026 sem dados)'}")
