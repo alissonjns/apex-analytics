@@ -14,21 +14,28 @@ def run_etl(file_path, tenant_id="visitante"):
 
     # Lista de abas que nos interessam
     sheets_of_interest = [
-        '1- BANCO DE DADOS',
-        '2 - FOLHA DE PAGAMENTO', 
-        '3 - RESCISÕES',
-        '4 - Meios de Pagamentos', 
-        '5 - Perdas',
-        '6 - CMV', 
-        '7 - Receitas '
+        'banco de dados',
+        'folha de pagamento', 
+        'rescisões',
+        'meios de pagamentos', 
+        'perdas',
+        'cmv', 
+        'receitas'
     ]
     
     xl = pd.ExcelFile(file_path)
     
     processed_count = 0
     
-    for sheet in sheets_of_interest:
-        if sheet in xl.sheet_names:
+    for sheet in xl.sheet_names:
+        sheet_clean = sheet.lower().strip()
+        matched = False
+        for s in sheets_of_interest:
+            if s in sheet_clean:
+                matched = True
+                break
+                
+        if matched:
             processed_count += 1
             print(f"Processando aba para nuvem: {sheet}")
             
