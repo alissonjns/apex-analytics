@@ -127,6 +127,19 @@ async def upload_file(request: Request, background_tasks: BackgroundTasks, file:
         "tenant_id": tenant_id
     }
 
+@app.delete("/api/reset_sandbox")
+def reset_sandbox(request: Request):
+    tenant_id = get_tenant_id(request)
+    if tenant_id == "araujo":
+        return {"message": "Admin nao pode ter dados resetados."}
+    
+    from api_logic import clear_tenant_data
+    success = clear_tenant_data(tenant_id)
+    if success:
+        return {"message": "Sandbox limpo com sucesso!"}
+    else:
+        return {"error": "Falha ao limpar sandbox."}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

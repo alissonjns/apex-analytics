@@ -30,7 +30,20 @@ function login() {
     window.location.href = url;
 }
 
-function logout() {
+async function logout() {
+    const token = getToken();
+    if (token) {
+        try {
+            await fetch(`${AWS_CONFIG.apiUrl}/api/reset_sandbox`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+        } catch (e) {
+            console.error("Erro ao limpar sandbox:", e);
+        }
+    }
     sessionStorage.removeItem('cognito_id_token');
     window.location.reload();
 }
