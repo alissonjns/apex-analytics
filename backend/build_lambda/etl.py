@@ -14,8 +14,11 @@ def run_etl(file_path, tenant_id="visitante"):
 
     # Lista de abas que nos interessam
     sheets_of_interest = [
+        '1- BANCO DE DADOS',
         '2 - FOLHA DE PAGAMENTO', 
+        '3 - RESCISÕES',
         '4 - Meios de Pagamentos', 
+        '5 - Perdas',
         '6 - CMV', 
         '7 - Receitas '
     ]

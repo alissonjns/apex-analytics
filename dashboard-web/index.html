@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Apex Analytics | Dashboard Corporativo</title>
+    <title>Apex Analytics | Sistema SaaS</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <!-- Dependências -->
@@ -16,93 +16,157 @@
 <body>
     <div class="glass-bg"></div>
     
-    <!-- Tela de Upload (Privacidade Total) -->
-    <div id="uploadScreen" class="upload-screen">
-        <div class="upload-card">
-            <div class="upload-icon">🔒</div>
-            <h2>Apex Analytics</h2>
-            <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 15px;">
-                <span id="userRoleBadge" style="background: #3b82f6; color: white; padding: 5px 10px; border-radius: 12px; font-size: 0.8em; font-weight: bold;">Carregando Perfil...</span>
-                <button onclick="logout()" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 5px 15px; border-radius: 12px; cursor: pointer; font-size: 0.8em;">Sair</button>
+    <div class="app-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Apex Analytics</h2>
+                <div id="userRoleBadge" class="role-badge">Carregando...</div>
             </div>
             
-            <p>Selecione a planilha para processar os dados do sistema.</p>
-            <p class="privacy-note">O processamento é feito localmente e salvo no cofre criptografado isolado da sua conta.</p>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-link active" data-target="view-visao-geral">📊 Visão Geral</a>
+                <a href="#" class="nav-link" data-target="view-receitas">💰 Receitas</a>
+                <a href="#" class="nav-link" data-target="view-custos">🛒 Custos e CMV</a>
+                <a href="#" class="nav-link" data-target="view-rh">👥 RH e Operação</a>
+                <a href="#" class="nav-link" data-target="view-perdas">🚨 Controle de Perdas</a>
+                <div class="nav-divider"></div>
+                <a href="#" class="nav-link" data-target="view-integracoes">⚙️ Configurações & Upload</a>
+            </nav>
             
-            <label for="excelFile" class="btn-upload">Carregar Planilha (Excel)</label>
-            <input type="file" id="excelFile" accept=".xlsx, .xls" style="display: none;">
-            <div id="loading" class="loading hidden">Processando inteligência de dados...</div>
-        </div>
-    </div>
-
-    <!-- Dashboard Principal -->
-    <div id="dashboardScreen" class="container hidden">
-        <header>
-            <div class="brand">
-                <h1>Apex Analytics</h1>
-                <p>Plataforma de Inteligência de Dados</p>
+            <div class="sidebar-footer">
+                <button onclick="logout()" class="btn-logout">Sair do Sistema</button>
             </div>
-            <div class="controls">
-                <button class="btn-export" onclick="logout()" style="background: #ef4444; border-color: #ef4444;">Sair</button>
-                <select id="yearSelect">
-                    <option value="2025">Ano: 2025</option>
-                    <option value="2024">Ano: 2024</option>
-                </select>
-                <button id="btnExportPPTX" class="btn-export">📊 Exportar Apresentação Executiva</button>
-            </div>
-        </header>
+        </aside>
 
-        <section class="insights-prescritivos">
-            <div class="alert-card danger">
-                <div class="icon">⚠️</div>
-                <div class="text">
-                    <h3>O Ralo Invisível</h3>
-                    <p>Total Histórico: <strong id="valAntecipacao">R$ --</strong> perdidos (Impacto de <strong id="pctAntecipacao">--%</strong> no Lucro Real acumulado).</p>
-                    <p style="margin-top: 8px; font-size: 0.9em;">Perda apenas no ano selecionado: <strong id="valAntecipacaoAno" style="color: #ef4444;">R$ --</strong></p>
+        <!-- Main Content Area -->
+        <main class="main-content">
+            
+            <header class="topbar">
+                <h2 id="pageTitle">Visão Geral</h2>
+                <div class="controls">
+                    <select id="yearSelect">
+                        <option value="2025">Ano: 2025</option>
+                        <option value="2024">Ano: 2024</option>
+                    </select>
+                    <button id="btnExportPPTX" class="btn-export">📊 Exportar Apresentação</button>
+                </div>
+            </header>
+
+            <!-- Loading Global -->
+            <div id="loading" class="loading hidden" style="text-align: center; margin-top: 50px;">Sincronizando dados com a nuvem...</div>
+
+            <!-- View: Visão Geral (O Dashboard Atual) -->
+            <div id="view-visao-geral" class="view-container active-view">
+                <section class="insights-prescritivos">
+                    <div class="alert-card danger">
+                        <div class="icon">⚠️</div>
+                        <div class="text">
+                            <h3>O Ralo Invisível</h3>
+                            <p>Total Histórico: <strong id="valAntecipacao">R$ --</strong> perdidos (Impacto de <strong id="pctAntecipacao">--%</strong> no Lucro Real acumulado).</p>
+                            <p style="margin-top: 8px; font-size: 0.9em;">Perda apenas no ano selecionado: <strong id="valAntecipacaoAno" style="color: #ef4444;">R$ --</strong></p>
+                        </div>
+                    </div>
+                    <div class="alert-card success">
+                        <div class="icon">📈</div>
+                        <div class="text">
+                            <h3>Previsão Preditiva (ML)</h3>
+                            <p>A projeção matemática para as vendas do próximo mês é de <strong id="valPrevisao">R$ --</strong>, caso mantenha a tendência linear atual.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="kpi-grid">
+                    <div class="kpi-card">
+                        <h4>Faturamento Bruto (Ano)</h4>
+                        <h2 id="kpiVendas">R$ --</h2>
+                    </div>
+                    <div class="kpi-card">
+                        <h4>Resultado Operacional</h4>
+                        <h2 id="kpiRO" class="text-green">R$ --</h2>
+                    </div>
+                    <div class="kpi-card">
+                        <h4>Ticket Médio</h4>
+                        <h2 id="kpiTM">R$ --</h2>
+                    </div>
+                    <div class="kpi-card">
+                        <h4>Fluxo de Clientes</h4>
+                        <h2 id="kpiFluxo">--</h2>
+                    </div>
+                </section>
+
+                <section class="charts-grid">
+                    <div class="chart-container">
+                        <h3>Vendas vs. Resultado Operacional</h3>
+                        <canvas id="chartVendasRO"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Composição de Despesas (Drenagem)</h3>
+                        <canvas id="chartDespesas"></canvas>
+                    </div>
+                    <div class="chart-container span-2">
+                        <h3>Vendas Loja Física vs. Delivery</h3>
+                        <canvas id="chartDelivery"></canvas>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Outras Views (Módulos em Construção) -->
+            <div id="view-receitas" class="view-container hidden">
+                <div class="alert-card success">
+                    <div class="icon">🚧</div>
+                    <div class="text">
+                        <h3>Módulo de Receitas e Vendas</h3>
+                        <p>Os dados detalhados estão sendo estruturados pelo Python no Data Lake.</p>
+                    </div>
                 </div>
             </div>
-            <div class="alert-card success">
-                <div class="icon">📈</div>
-                <div class="text">
-                    <h3>Previsão Preditiva (ML)</h3>
-                    <p>A projeção matemática para as vendas do próximo mês é de <strong id="valPrevisao">R$ --</strong>, caso mantenha a tendência linear atual.</p>
+
+            <div id="view-custos" class="view-container hidden">
+                <div class="alert-card warning">
+                    <div class="icon">🚧</div>
+                    <div class="text">
+                        <h3>Módulo de Custos e CMV</h3>
+                        <p>Os dados detalhados estão sendo estruturados pelo Python no Data Lake.</p>
+                    </div>
                 </div>
             </div>
-        </section>
 
-        <section class="kpi-grid">
-            <div class="kpi-card">
-                <h4>Faturamento Bruto (Ano)</h4>
-                <h2 id="kpiVendas">R$ --</h2>
+            <div id="view-rh" class="view-container hidden">
+                <div class="alert-card success">
+                    <div class="icon">🚧</div>
+                    <div class="text">
+                        <h3>Módulo de RH (Folha e Rescisões)</h3>
+                        <p>Os dados detalhados estão sendo estruturados pelo Python no Data Lake.</p>
+                    </div>
+                </div>
             </div>
-            <div class="kpi-card">
-                <h4>Resultado Operacional</h4>
-                <h2 id="kpiRO" class="text-green">R$ --</h2>
-            </div>
-            <div class="kpi-card">
-                <h4>Ticket Médio</h4>
-                <h2 id="kpiTM">R$ --</h2>
-            </div>
-            <div class="kpi-card">
-                <h4>Fluxo de Clientes</h4>
-                <h2 id="kpiFluxo">--</h2>
-            </div>
-        </section>
 
-        <section class="charts-grid">
-            <div class="chart-container">
-                <h3>Vendas vs. Resultado Operacional</h3>
-                <canvas id="chartVendasRO"></canvas>
+            <div id="view-perdas" class="view-container hidden">
+                <div class="alert-card danger">
+                    <div class="icon">🚧</div>
+                    <div class="text">
+                        <h3>Módulo de Controle de Perdas</h3>
+                        <p>Os dados detalhados estão sendo estruturados pelo Python no Data Lake.</p>
+                    </div>
+                </div>
             </div>
-            <div class="chart-container">
-                <h3>Composição de Despesas (Drenagem)</h3>
-                <canvas id="chartDespesas"></canvas>
+
+            <!-- View: Integrações (Upload) -->
+            <div id="view-integracoes" class="view-container hidden">
+                <div class="upload-screen-inner">
+                    <div class="upload-card">
+                        <div class="upload-icon">☁️</div>
+                        <h2>Atualizar Banco de Dados</h2>
+                        <p>Faça o upload da planilha central para atualizar todos os indicadores do sistema instantaneamente.</p>
+                        <p class="privacy-note">Seus dados são salvos no seu cofre seguro do S3 da AWS.</p>
+                        <label for="excelFile" class="btn-upload">Selecionar Arquivo (Excel)</label>
+                        <input type="file" id="excelFile" accept=".xlsx, .xls" style="display: none;">
+                    </div>
+                </div>
             </div>
-            <div class="chart-container span-2">
-                <h3>Vendas Loja Física vs. Delivery</h3>
-                <canvas id="chartDelivery"></canvas>
-            </div>
-        </section>
+
+        </main>
     </div>
     
     <script src="app.js"></script>
