@@ -54,6 +54,9 @@ Você pode acessar o ambiente de testes de demonstração.
    - 📥 **[Baixe a Planilha de Demonstração (ZIP) Aqui](https://raw.githubusercontent.com/alissonjns/araujo-bi/main/Apex_Demo_Data.zip)**
    - Extraia o arquivo Excel e faça o upload no sistema para ver o Data Lake processar as 7 abas automaticamente, populando os gráficos em tempo real na sua sessão!
 
+   > [!NOTE]  
+   > **Engenharia de Dados Aplicada:** A base de demonstração acima contém **dados fictícios gerados por IA**. Mais do que isso, a base foi projetada propositalmente de forma **caótica e suja** (nomes incorretos de abas, espaçamentos absurdos, valores de moeda formatados como texto ao invés de números, etc.). O objetivo dessa base desestruturada é provar a robustez e tolerância a falhas do nosso motor extrator (ETL), simulando a realidade de planilhas de usuários leigos no mercado!
+
 ### Como rodar o Backend Localmente
 
 Se você clonou este repositório e deseja testar o Motor Python na sua máquina (sem necessariamente jogar para a AWS):
