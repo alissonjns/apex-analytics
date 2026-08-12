@@ -164,6 +164,55 @@ def get_dashboard_data(tenant_id="visitante"):
         }
     }
 
+def get_receitas_data(tenant_id="visitante"):
+    import awswrangler as wr
+    import os
+    
+    s3_bucket = os.environ.get("S3_BUCKET_NAME", "araujo-bi-datalake")
+    
+    try:
+        df_rec = wr.s3.read_parquet(path=f"s3://{s3_bucket}/clientes/{tenant_id}/bronze/bronze_7_receitas_.parquet")
+        df_pag = wr.s3.read_parquet(path=f"s3://{s3_bucket}/clientes/{tenant_id}/bronze/bronze_4_meios_de_pagamentos.parquet")
+    except Exception as e:
+        print(f"Erro lendo parquets de receitas: {e}")
+        return {'error': 'Dados não encontrados'}
+
+    rec_matrix = df_rec.values.tolist()
+    pag_matrix = df_pag.values.tolist()
+    
+    results = {}
+    
+    # Encontrar anos no arquivo de pagamentos
+    year_anchors = []
+    for r, row in enumerate(pag_matrix):
+        for c, cell in enumerate(row):
+            if str(cell).replace('.0', '') in ['2023', '2024', '2025', '2026']:
+                if c <= 2:
+                    year_anchors.append({'year': str(cell).replace('.0', ''), 'row': r})
+                    
+    for i in range(len(year_anchors)):
+        year = year_anchors[i]['year']
+        start_row = year_anchors[i]['row']
+        end_row = year_anchors[i+1]['row'] if i < len(year_anchors) - 1 else len(pag_matrix)
+        
+        dinheiro = extract_row(pag_matrix, 'dinheiro', start_row, end_row)
+        credito = extract_row(pag_matrix, 'crédito', start_row, end_row)
+        if sum(x is None for x in credito) == 12: credito = extract_row(pag_matrix, 'credito', start_row, end_row)
+        debito = extract_row(pag_matrix, 'débito', start_row, end_row)
+        if sum(x is None for x in debito) == 12: debito = extract_row(pag_matrix, 'debito', start_row, end_row)
+        pix = extract_row(pag_matrix, 'pix', start_row, end_row)
+        caderneta = extract_row(pag_matrix, 'caderneta', start_row, end_row)
+        
+        results[year] = {
+            'dinheiro': dinheiro,
+            'credito': credito,
+            'debito': debito,
+            'pix': pix,
+            'caderneta': caderneta
+        }
+        
+    return {'data': results}
+
 if __name__ == "__main__":
     import json
     print(json.dumps(get_dashboard_data(), indent=2))

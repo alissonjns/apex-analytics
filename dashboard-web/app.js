@@ -51,20 +51,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Setup Sidebar Navigation
 function setupNavigation() {
-    const navLinks = document.querySelectorAll('.nav-link');
-    const views = document.querySelectorAll('.view-container');
-    const pageTitle = document.getElementById('pageTitle');
-
-    navLinks.forEach(link => {
+    document.querySelectorAll('.nav-link').forEach(link => {
         link.addEventListener('click', (e) => {
-            e.preventDefault();
-            navLinks.forEach(l => l.classList.remove('active'));
-            views.forEach(v => v.classList.add('hidden'));
+            if(e.target.classList.contains('btn-logout')) return;
             
-            link.classList.add('active');
-            const targetId = link.getAttribute('data-target');
-            document.getElementById(targetId).classList.remove('hidden');
-            pageTitle.innerText = link.innerText.split(' ').slice(1).join(' '); // Remove emoji
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            e.currentTarget.classList.add('active');
+            
+            const target = e.currentTarget.getAttribute('data-target');
+            document.querySelectorAll('.view-container').forEach(v => v.classList.add('hidden'));
+            document.getElementById(target).classList.remove('hidden');
+            
+            document.getElementById('pageTitle').innerText = e.currentTarget.innerText.trim();
+            
+            // Lazy load data for tabs
+            if(target === 'view-receitas' && !receitasDataCache) {
+                fetchReceitasData();
+            }
         });
     });
 }
@@ -89,6 +92,7 @@ async function fetchDashboardData() {
         }
         
         if (data && data.data && Object.keys(data.data).length > 0) {
+            dashboardDataCache = data;
             processApiData(data);
         } else {
             // No data in DB yet
@@ -100,6 +104,29 @@ async function fetchDashboardData() {
     } finally {
         loading.classList.add('hidden');
     }
+}
+
+async function fetchReceitasData() {
+    try {
+        const token = getToken();
+        const res = await fetch(`${API_BASE}/api/receitas_data`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error("Erro na API");
+        const data = await res.json();
+        
+        if (data && data.data && Object.keys(data.data).length > 0) {
+            receitasDataCache = data.data;
+            updateReceitasView();
+        }
+    } catch (err) {
+        console.error("Erro ao buscar receitas", err);
+    }
+}
+
+function formatCurrency(val) {
+    if(!val) return 'R$ 0,00';
+    return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
 function showUploadView() {
@@ -171,7 +198,10 @@ function processApiData(apiResponse) {
 }
 
 // ---- Chart Logic ----
-document.getElementById('yearSelect').addEventListener('change', (e) => { renderYear(e.target.value); });
+document.getElementById('yearSelect').addEventListener('change', (e) => { 
+    renderYear(e.target.value); 
+    if(receitasDataCache) updateReceitasView();
+});
 
 function renderYear(year) {
     const data = globalData.data[year];
@@ -189,6 +219,52 @@ function renderYear(year) {
     updateChartVendasRO(data);
     updateChartDespesas(data);
     updateChartDelivery(data);
+}
+
+function updateReceitasView() {
+    if(!receitasDataCache) return;
+    const year = document.getElementById('yearSelect').value || "2024";
+    const data = receitasDataCache[year];
+    if(!data) return;
+    
+    const sum = (arr) => arr.reduce((a, b) => a + (b || 0), 0);
+    
+    const totDinheiro = sum(data.dinheiro);
+    const totPix = sum(data.pix);
+    const totCredito = sum(data.credito);
+    const totDebito = sum(data.debito);
+    const totCaderneta = sum(data.caderneta);
+    
+    document.getElementById('kpiLiquidez').innerText = formatCurrency(totDinheiro + totPix);
+    document.getElementById('kpiCartoes').innerText = formatCurrency(totCredito + totDebito);
+    document.getElementById('kpiCaderneta').innerText = formatCurrency(totCaderneta);
+    
+    // Calcula TM Geral das Receitas usando o cache da visão geral
+    if(dashboardDataCache && dashboardDataCache.data[year]) {
+        const d_vendas = sum(dashboardDataCache.data[year].vendas);
+        const d_fluxo = sum(dashboardDataCache.data[year].fluxo);
+        document.getElementById('kpiTicketReceitas').innerText = formatCurrency(d_fluxo ? (d_vendas / d_fluxo) : 0);
+    }
+    
+    // Grafico Caderneta (Risco)
+    const ctxCaderneta = document.getElementById('chartCaderneta').getContext('2d');
+    if(charts.caderneta) charts.caderneta.destroy();
+    charts.caderneta = new Chart(ctxCaderneta, {
+        type: 'line',
+        data: { labels: months, datasets: [
+            { label: 'Fiado (Caderneta)', data: data.caderneta, borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)', fill: true, tension: 0.4 }
+        ]},
+        options: { responsive: true, scales: { y: { grid: { color: 'rgba(65, 74, 99, 0.05)' }, ticks: { color: '#8d97ad' } }, x: { grid: { display: false }, ticks: { color: '#8d97ad' } } }, plugins: { legend: { labels: { color: '#414a63' } } } }
+    });
+    
+    // Grafico Composicao
+    const ctxPagamentos = document.getElementById('chartPagamentos').getContext('2d');
+    if(charts.pagamentos) charts.pagamentos.destroy();
+    charts.pagamentos = new Chart(ctxPagamentos, {
+        type: 'doughnut',
+        data: { labels: ['PIX', 'Cartão (C/D)', 'Dinheiro', 'Caderneta'], datasets: [{ data: [totPix, (totCredito+totDebito), totDinheiro, totCaderneta], backgroundColor: ['#36b37e', '#4a7af7', '#f59e0b', '#ef4444'], borderWidth: 0 }] },
+        options: { responsive: true, plugins: { legend: { position: 'right', labels: { color: '#414a63' } } } }
+    });
 }
 
 function updateChartVendasRO(data) {
