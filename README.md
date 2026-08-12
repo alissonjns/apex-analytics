@@ -50,7 +50,9 @@ Você pode acessar o ambiente de testes de demonstração.
    [🔗 Acessar Dashboard Apex Analytics](https://alissonjns.github.io/araujo-bi/dashboard-web/index.html)
 
 2. **Como o Usuário Visitante (Demo):**
-   Acesse a URL e veja o layout inicial. Envie a planilha de teste disponibilizada (ou invente dados baseados nela) e o sistema alimentará as abas automaticamente na sua sessão!
+   Acesse a URL e veja o layout inicial. Você precisará de uma planilha no formato exato que nosso ETL espera.
+   - 📥 **[Baixe a Planilha de Demonstração (Fictícia) Aqui](https://raw.githubusercontent.com/alissonjns/araujo-bi/main/Planilha_Demonstracao_Apex.xlsx)**
+   - Faça o upload dessa planilha no sistema e veja o Data Lake processar as 7 abas automaticamente, populando os gráficos em tempo real na sua sessão!
 
 ### Como rodar o Backend Localmente
 
