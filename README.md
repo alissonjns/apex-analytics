@@ -47,11 +47,11 @@ A decisão pela arquitetura Serverless (Lambda + API Gateway + S3) foi pautada n
 
 Você pode interagir com o ambiente de produção (Frontend via GitHub Pages conectando na AWS).
 
-1. **Acesse o Sistema:** [🔗 Acessar Dashboard Apex Analytics](https://alissonjns.github.io/araujo-bi/dashboard-web/index.html)
+1. **Acesse o Sistema:** [🔗 Acessar Dashboard Apex Analytics](https://alissonjns.github.io/apex-analytics/dashboard-web/index.html)
 2. **Como o Usuário Visitante (Demo):**
    Ao acessar, você verá a tela de upload inicial. Para ver o Data Lake trabalhar, você precisará enviar dados.
    
-   - 📥 **[Baixe a Planilha de Demonstração (ZIP) Aqui](https://raw.githubusercontent.com/alissonjns/araujo-bi/main/Apex_Demo_Data.zip)**
+   - 📥 **[Baixe a Planilha de Demonstração (ZIP) Aqui](https://raw.githubusercontent.com/alissonjns/apex-analytics/main/Apex_Demo_Data.zip)**
    - Extraia a pasta e faça o upload do arquivo Excel na tela do sistema. A AWS Lambda processará os dados em segundos e montará todo o dashboard.
 
 > [!WARNING]  
@@ -67,8 +67,8 @@ Se você deseja inspecionar o motor Python ou contribuir com o projeto, pode rod
 
 ```bash
 # 1. Clone o Repositório
-git clone https://github.com/alissonjns/araujo-bi.git
-cd araujo-bi/backend
+git clone https://github.com/alissonjns/apex-analytics.git
+cd apex-analytics/backend
 
 # 2. Instale as dependências
 pip install -r requirements.txt
