@@ -145,31 +145,66 @@
             </div>
 
             <div id="view-custos" class="view-container hidden">
-                <div class="alert-card warning">
-                    <div class="icon">🚧</div>
-                    <div class="text">
-                        <h3>Módulo de Custos e CMV</h3>
-                        <p>Os dados detalhados estão sendo estruturados pelo Python no Data Lake.</p>
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <h4>Total de Custos (Ano)</h4>
+                        <h2 id="kpiCustosTotal">R$ 0,00</h2>
+                    </div>
+                    <div class="kpi-card">
+                        <h4>Margem Operacional</h4>
+                        <h2 id="kpiMargem">0%</h2>
+                    </div>
+                </div>
+                <div class="charts-grid">
+                    <div class="chart-container span-2">
+                        <h3>Evolução de Custos vs Resultado Operacional</h3>
+                        <canvas id="chartCustosEvolucao" height="100"></canvas>
                     </div>
                 </div>
             </div>
 
             <div id="view-rh" class="view-container hidden">
-                <div class="alert-card success">
-                    <div class="icon">🚧</div>
-                    <div class="text">
-                        <h3>Módulo de RH (Folha e Rescisões)</h3>
-                        <p>Os dados detalhados estão sendo estruturados pelo Python no Data Lake.</p>
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <h4>Gasto com Folha (Ano)</h4>
+                        <h2 id="kpiFolha">R$ 0,00</h2>
+                    </div>
+                    <div class="kpi-card" style="border-bottom: 4px solid var(--danger)">
+                        <h4>Rescisões (Turnover)</h4>
+                        <h2 id="kpiRescisao" class="text-danger">R$ 0,00</h2>
+                    </div>
+                </div>
+                <div class="charts-grid">
+                    <div class="chart-container span-2">
+                        <h3>Monitoramento de Custos Trabalhistas</h3>
+                        <canvas id="chartRH" height="100"></canvas>
                     </div>
                 </div>
             </div>
 
             <div id="view-perdas" class="view-container hidden">
-                <div class="alert-card danger">
-                    <div class="icon">🚧</div>
-                    <div class="text">
-                        <h3>Módulo de Controle de Perdas</h3>
-                        <p>Os dados detalhados estão sendo estruturados pelo Python no Data Lake.</p>
+                <div class="kpi-grid">
+                    <div class="kpi-card" style="border-bottom: 4px solid var(--danger)">
+                        <h4>O Ralo Invisível (Perdas Totais)</h4>
+                        <h2 id="kpiPerdaTotal" class="text-danger">R$ 0,00</h2>
+                    </div>
+                    <div class="kpi-card">
+                        <h4>Setor Mais Crítico</h4>
+                        <h2 id="kpiSetorCritico">Nenhum</h2>
+                    </div>
+                    <div class="kpi-card">
+                        <h4>Impacto nas Vendas (%)</h4>
+                        <h2 id="kpiImpactoVendas">0%</h2>
+                    </div>
+                </div>
+                <div class="charts-grid">
+                    <div class="chart-container">
+                        <h3>Perdas por Setor (Ofensores)</h3>
+                        <canvas id="chartPerdasDoughnut" height="250"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Evolução das Perdas</h3>
+                        <canvas id="chartPerdasLinha" height="250"></canvas>
                     </div>
                 </div>
             </div>
@@ -191,6 +226,6 @@
         </main>
     </div>
     
-    <script src="app.js?v=3"></script>
+    <script src="app.js?v=4"></script>
 </body>
 </html>
