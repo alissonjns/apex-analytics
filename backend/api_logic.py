@@ -191,7 +191,8 @@ def get_receitas_data(tenant_id="visitante"):
     
     try:
         p_rec = find_parquet(s3_bucket, tenant_id, "receitas")
-        p_pag = find_parquet(s3_bucket, tenant_id, "pagamento")
+        # Usa 'meios' como keyword para evitar conflito com 'folha_de_pagamento'
+        p_pag = find_parquet(s3_bucket, tenant_id, "meios")
         if not p_rec or not p_pag: raise Exception("Finance files not found")
         df_rec = wr.s3.read_parquet(path=p_rec)
         df_pag = wr.s3.read_parquet(path=p_pag)
