@@ -45,5 +45,6 @@ async function logout() {
         }
     }
     sessionStorage.removeItem('cognito_id_token');
+    localStorage.clear(); // Previne vazamento de dados de cache entre contas!
     window.location.reload();
 }
