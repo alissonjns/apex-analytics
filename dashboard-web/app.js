@@ -10,7 +10,7 @@ const uploadScreen = document.getElementById('view-integracoes');
 const dashboardScreen = document.getElementById('view-visao-geral');
 const fileInput = document.getElementById('excelFile');
 const loading = document.getElementById('loading');
-const btnExportPPTX = document.getElementById('btnExportPPTX');
+const btnExportPDF = document.getElementById('btnExportPDF');
 
 // API Constants
 const API_BASE = AWS_CONFIG.apiUrl;
@@ -472,51 +472,134 @@ function updateChartDelivery(data) {
     });
 }
 
-// ---- PPTX Gen ----
-btnExportPPTX.addEventListener('click', () => {
-    if(!globalData) return;
+// ---- PDF Gen ----
+btnExportPDF.addEventListener('click', () => {
+    const year = document.getElementById('yearSelect').value;
+    const activeTab = document.querySelector('.nav-link.active').getAttribute('data-target');
+    let title = "";
+    let content = "";
+    const sum = (arr) => arr ? arr.reduce((a, b) => a + (b || 0), 0) : 0;
     
-    let pres = new PptxGenJS();
-    pres.author = 'Apex Analytics';
-    pres.company = 'Cliente: Padaria Araujo';
-    pres.title = 'Apresentação de Resultados';
-    pres.layout = 'LAYOUT_16x9';
+    if (activeTab === 'view-visao-geral') {
+        if(!globalData || !globalData.data[year]) return alert("Dados não carregados.");
+        const data = globalData.data[year];
+        title = "Relatório de Visão Geral";
+        let vendas = sum(data.vendas);
+        let ro = sum(data.ro);
+        let roPct = vendas ? (ro / vendas * 100).toFixed(1) : 0;
+        let prev = globalData.insights.previsao_proximo_mes_vendas;
+        content = `
+            <p>Este relatório apresenta um resumo executivo da performance da Padaria Araujo no ano de <strong>${year}</strong>.</p>
+            <p>O faturamento bruto acumulado atingiu a marca de <strong>${formatMoney(vendas)}</strong>. O Resultado Operacional (RO), que representa a eficiência real de geração de caixa do negócio, fechou em <strong>${formatMoney(ro)}</strong> (uma margem de <strong>${roPct}%</strong>).</p>
+            <p>Durante o período, identificamos através de nossos motores de inteligência que a empresa perdeu <strong>${formatMoney(globalData.insights.total_antecipacao)}</strong> diretamente em taxas de antecipação de cartão. O impacto dessa drenagem equivale a <strong>${formatPct(globalData.insights.impacto_antecipacao_pct)}</strong> de todo o Lucro Real acumulado no ano.</p>
+            <p>Com base no comportamento histórico e aplicando Médias Móveis Ponderadas (WMA), o sistema preditivo projeta um faturamento bruto de <strong>${formatMoney(prev)}</strong> para o próximo mês, assumindo a manutenção das condições normais de operação.</p>
+        `;
+    } else if (activeTab === 'view-receitas') {
+        if(!receitasDataCache || !receitasDataCache.data[year]) return alert("Dados não carregados.");
+        const data = receitasDataCache.data[year];
+        title = "Relatório de Receitas e Pagamentos";
+        let din = sum(data.dinheiro);
+        let cred = sum(data.credito);
+        let deb = sum(data.debito);
+        let pix = sum(data.pix);
+        let total = din + cred + deb + pix;
+        let cartoes = cred + deb;
+        let cartoesPct = total ? (cartoes / total * 100).toFixed(1) : 0;
+        content = `
+            <p>Análise detalhada das formas de recebimento e receitas no ano de <strong>${year}</strong>.</p>
+            <p>A distribuição dos pagamentos revela a forte predominância dos meios digitais. O pagamento via Cartão (Crédito e Débito) somou <strong>${formatMoney(cartoes)}</strong>, correspondendo a <strong>${cartoesPct}%</strong> das transações mapeadas.</p>
+            <p>O volume transacionado em PIX totalizou <strong>${formatMoney(pix)}</strong>, enquanto os pagamentos em espécie (Dinheiro) ficaram em <strong>${formatMoney(din)}</strong>.</p>
+            <p><strong>Insight Estratégico:</strong> O alto volume de pagamentos em cartões reforça a urgência em renegociar taxas de adquirência e evitar a antecipação automática, que corrói de forma grave a margem líquida do negócio.</p>
+        `;
+    } else if (activeTab === 'view-custos') {
+        if(!globalData || !globalData.data[year]) return alert("Dados não carregados.");
+        const data = globalData.data[year];
+        title = "Relatório de Custos e CMV";
+        let vendas = sum(data.vendas);
+        let desp = sum(data.despesas);
+        let cmvPct = vendas ? (desp / vendas * 100).toFixed(1) : 0;
+        let statusCmv = cmvPct > 40 ? "Atenção Crítica: O CMV está acima da margem considerada saudável." : "Saudável: O CMV está controlado e dentro da margem aceitável.";
+        content = `
+            <p>Este documento detalha o comportamento dos Custos das Mercadorias Vendidas (CMV) e Despesas Operacionais no ano de <strong>${year}</strong>.</p>
+            <p>As despesas totais registradas ao longo do ano foram de <strong>${formatMoney(desp)}</strong>. Relacionando este valor com o faturamento bruto, temos um índice de CMV médio de <strong>${cmvPct}%</strong>.</p>
+            <p><strong>Avaliação do Algoritmo:</strong> ${statusCmv}</p>
+            <p>Manter o controle rígido do CMV através de redução de desperdícios, cotação estratégica com múltiplos fornecedores e controle de estoque é o fator mais determinante para proteger o Resultado Operacional.</p>
+        `;
+    } else if (activeTab === 'view-rh') {
+        if(!rhDataCache || !rhDataCache.data[year]) return alert("Dados não carregados.");
+        const data = rhDataCache.data[year];
+        title = "Relatório de RH e Operação";
+        let folha = sum(data.folha);
+        let inss = sum(data.inss);
+        let rescisao = sum(data.rescisao);
+        let totalRh = folha + inss + rescisao;
+        content = `
+            <p>Resumo dos custos trabalhistas e operacionais da equipe no ano de <strong>${year}</strong>.</p>
+            <p>O custo total com Recursos Humanos (Folha, Encargos e Rescisões) atingiu a marca de <strong>${formatMoney(totalRh)}</strong> no período analisado.</p>
+            <p>A maior parcela deste valor concentra-se na Folha de Pagamento base, que representou <strong>${formatMoney(folha)}</strong>. Os encargos tributários diretos contabilizaram <strong>${formatMoney(inss)}</strong>. Adicionalmente, o custo isolado com rotatividade (Rescisões) foi de <strong>${formatMoney(rescisao)}</strong>.</p>
+            <p><strong>Recomendação:</strong> Fique atento à taxa de rescisão. A alta rotatividade não apenas onera o caixa da empresa como também prejudica diretamente a qualidade do atendimento, a cultura organizacional e a constância dos produtos.</p>
+        `;
+    } else if (activeTab === 'view-perdas') {
+        if(!perdasDataCache || !perdasDataCache.data[year]) return alert("Dados não carregados.");
+        const data = perdasDataCache.data[year];
+        title = "Relatório de Controle de Perdas";
+        let totPerdas = sum(data.total_perdas);
+        let totVendas = sum(data.total_vendas);
+        let impacto = totVendas ? (totPerdas / totVendas * 100).toFixed(2) : 0;
+        
+        const perdasSetores = {
+            'Confeitaria': sum(data.confeitaria),
+            'Produção': sum(data.producao),
+            'Pizza': sum(data.pizza),
+            'Cozinha': sum(data.cozinha),
+            'Sushi': sum(data.sushi),
+            'Atendimento': sum(data.atendimento)
+        };
+        let worstSector = 'Nenhum';
+        let worstVal = 0;
+        for(let k in perdasSetores) {
+            if(perdasSetores[k] > worstVal) { worstVal = perdasSetores[k]; worstSector = k; }
+        }
 
-    // Slide 1: Capa
-    let slideCapa = pres.addSlide();
-    slideCapa.background = { color: "0f1115" };
-    slideCapa.addText("Padaria Araujo", { x: 0, y: 1.5, w: "100%", fontSize: 54, color: "ffffff", bold: true, align: "center" });
-    slideCapa.addText("Relatório de Inteligência Executiva", { x: 0, y: 2.8, w: "100%", fontSize: 26, color: "3b82f6", align: "center" });
-    slideCapa.addText("Gerado automaticamente pelo Motor de Dados", { x: 0, y: 5.0, w: "100%", fontSize: 14, color: "94a3b8", align: "center" });
+        content = `
+            <p>Análise de quebras, desperdícios e perdas operacionais durante o ano de <strong>${year}</strong>.</p>
+            <p>No acumulado do ano, a empresa registrou <strong>${formatMoney(totPerdas)}</strong> em perdas catalogadas (produtos vencidos, erros na confecção, devoluções, etc). Isso representa uma corrosão direta de <strong>${impacto}%</strong> sobre o faturamento total.</p>
+            <p>O setor identificado pelo algoritmo como o maior ofensor do sistema foi <strong>${worstSector}</strong>, sendo responsável por perdas de <strong>${formatMoney(worstVal)}</strong> isoladamente.</p>
+            <p><strong>Plano de Ação:</strong> Direcionar esforços de controle de qualidade e gestão (como revisão de fichas técnicas, treinamento de equipe e ajuste fino do volume de produção) para o setor de ${worstSector} trará o retorno mais rápido em economia real para a empresa.</p>
+        `;
+    } else {
+        return alert("O relatório não está disponível para esta tela.");
+    }
 
-    // Slide 2: O Ralo Invisível
-    let slideRalo = pres.addSlide();
-    slideRalo.background = { color: "ffffff" };
-    slideRalo.addText("⚠️ Drenagem de Caixa: Taxas de Antecipação", { x: 0.5, y: 0.5, w: "90%", fontSize: 32, bold: true, color: "ef4444" });
-    
-    let raloText = [
-        { text: "Durante o período analisado, a empresa perdeu exatos ", options: { fontSize: 20, color: "333333" } },
-        { text: formatMoney(globalData.insights.total_antecipacao), options: { fontSize: 22, color: "ef4444", bold: true } },
-        { text: " apenas em taxas de antecipação de cartão.\n\nIsso representa uma destruição direta de ", options: { fontSize: 20, color: "333333" } },
-        { text: formatPct(globalData.insights.impacto_antecipacao_pct), options: { fontSize: 22, color: "ef4444", bold: true } },
-        { text: " de todo o seu Lucro Operacional real.\n\n", options: { fontSize: 20, color: "333333" } },
-        { text: "Recomendação Estratégica:\n", options: { fontSize: 22, color: "3b82f6", bold: true } },
-        { text: "Negociar carência com a adquirente ou criar fundo de reserva para diminuir a antecipação agressiva.", options: { fontSize: 18, color: "555555" } }
-    ];
-    slideRalo.addText(raloText, { x: 0.5, y: 1.8, w: "90%", h: 3, lineSpacing: 35 });
+    const htmlContent = `
+        <div style="font-family: 'Inter', Helvetica, Arial, sans-serif; padding: 40px; color: #1e293b; background: white;">
+            <div style="border-bottom: 3px solid #3b82f6; padding-bottom: 20px; margin-bottom: 30px;">
+                <h1 style="color: #0f172a; margin: 0; font-size: 28px; font-weight: 800;">Apex Analytics - Relatório de Inteligência</h1>
+                <p style="color: #64748b; margin: 5px 0 0 0; font-size: 16px; font-weight: 600;">Cliente: Padaria Araujo | Exercício: ${year}</p>
+            </div>
+            <h2 style="color: #3b82f6; font-size: 22px; margin-bottom: 25px;">${title}</h2>
+            <div style="font-size: 16px; line-height: 1.8; text-align: justify; color: #334155;">
+                ${content}
+            </div>
+            <div style="margin-top: 60px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #94a3b8; text-align: center;">
+                Documento gerado automaticamente pelo Motor Preditivo Apex Analytics em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}.
+            </div>
+        </div>
+    `;
 
-    // Slide 3: Projeções de Machine Learning
-    let slideProj = pres.addSlide();
-    slideProj.background = { color: "ffffff" };
-    slideProj.addText("📈 Projeção Preditiva (Próximo Mês)", { x: 0.5, y: 0.5, w: "90%", fontSize: 32, bold: true, color: "10b981" });
-    
-    let projText = [
-        { text: "Baseado na regressão matemática linear dos últimos 6 meses de faturamento, a projeção de vendas brutas para o próximo mês é de:\n\n", options: { fontSize: 20, color: "333333" } },
-        { text: formatMoney(globalData.insights.previsao_proximo_mes_vendas) + "\n\n", options: { fontSize: 36, color: "10b981", bold: true, align: "center" } },
-        { text: "Aviso: Esta projeção considera a inércia atual do negócio e não prevê picos de feriados excepcionais.", options: { fontSize: 16, color: "94a3b8", italic: true } }
-    ];
-    slideProj.addText(projText, { x: 0.5, y: 1.8, w: "90%", h: 3 });
+    const container = document.getElementById('pdf-report-container');
+    container.innerHTML = htmlContent;
+    container.classList.remove('hidden');
 
-    // Save
-    pres.writeFile({ fileName: 'Apresentacao_Executiva_Araujo.pptx' });
+    const opt = {
+        margin:       0.5,
+        filename:     `Apex_${title.replace(/ /g, '_')}_${year}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true },
+        jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+    };
+
+    html2pdf().set(opt).from(container).save().then(() => {
+        container.classList.add('hidden');
+    });
 });

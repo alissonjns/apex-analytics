@@ -9,7 +9,7 @@
     <!-- Dependências -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="config.js"></script>
     <script src="auth.js?v=2"></script>
 </head>
@@ -45,11 +45,8 @@
             <header class="topbar">
                 <h2 id="pageTitle">Visão Geral</h2>
                 <div class="controls">
-                    <select id="yearSelect">
-                        <option value="2025">Ano: 2025</option>
-                        <option value="2024">Ano: 2024</option>
-                    </select>
-                    <button id="btnExportPPTX" class="btn-export">📊 Exportar Apresentação</button>
+                    <select id="yearSelect" class="year-selector"></select>
+                    <button id="btnExportPDF" class="btn-export">📄 Exportar Relatório (PDF)</button>
                 </div>
             </header>
 
@@ -226,6 +223,8 @@
         </main>
     </div>
     
-    <script src="app.js?v=8"></script>
+    <div id="pdf-report-container" class="hidden"></div>
+    
+    <script src="app.js?v=9"></script>
 </body>
 </html>
