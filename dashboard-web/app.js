@@ -47,30 +47,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setupNavigation();
     fetchDashboardData();
-});
+})
+let dashboardDataCache = null;
+let receitasDataCache = null;
+let rhDataCache = null;
+let perdasDataCache = null;
 
-// Setup Sidebar Navigation
-function setupNavigation() {
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.addEventListener('click', (e) => {
-            if(e.target.classList.contains('btn-logout')) return;
-            
-            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-            e.currentTarget.classList.add('active');
-            
-            const target = e.currentTarget.getAttribute('data-target');
-            document.querySelectorAll('.view-container').forEach(v => v.classList.add('hidden'));
-            document.getElementById(target).classList.remove('hidden');
-            
-            document.getElementById('pageTitle').innerText = e.currentTarget.innerText.trim();
-            
-            // Lazy load data for tabs
-            if(target === 'view-receitas' && !receitasDataCache) {
-                fetchReceitasData();
-            }
-        });
+// Tab Navigation Logic
+document.querySelectorAll('.nav-link').forEach(link => {
+    link.addEventListener('click', (e) => {
+        if(e.target.classList.contains('btn-logout')) return;
+        
+        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        
+        const target = e.currentTarget.getAttribute('data-target');
+        document.querySelectorAll('.view-container').forEach(v => v.classList.add('hidden'));
+        document.getElementById(target).classList.remove('hidden');
+        
+        document.getElementById('pageTitle').innerText = e.currentTarget.innerText.trim();
+        
+        // Lazy load data for tabs
+        if(target === 'view-receitas' && !receitasDataCache) fetchReceitasData();
+        if(target === 'view-rh' && !rhDataCache) fetchRhData();
+        if(target === 'view-perdas' && !perdasDataCache) fetchPerdasData();
+        if(target === 'view-custos') updateCustosView();
     });
-}
+});
 
 // Fetch Data from Backend
 async function fetchDashboardData() {
@@ -109,19 +112,31 @@ async function fetchDashboardData() {
 async function fetchReceitasData() {
     try {
         const token = getToken();
-        const res = await fetch(`${API_BASE}/api/receitas_data`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const res = await fetch(`${API_BASE}/api/receitas_data`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (!res.ok) throw new Error("Erro na API");
         const data = await res.json();
-        
-        if (data && data.data && Object.keys(data.data).length > 0) {
-            receitasDataCache = data.data;
-            updateReceitasView();
-        }
-    } catch (err) {
-        console.error("Erro ao buscar receitas", err);
-    }
+        if (data && data.data) { receitasDataCache = data.data; updateReceitasView(); }
+    } catch (err) { console.error(err); }
+}
+
+async function fetchRhData() {
+    try {
+        const token = getToken();
+        const res = await fetch(`${API_BASE}/api/rh_data`, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (!res.ok) throw new Error("Erro na API");
+        const data = await res.json();
+        if (data && data.data) { rhDataCache = data.data; updateRhView(); }
+    } catch (err) { console.error(err); }
+}
+
+async function fetchPerdasData() {
+    try {
+        const token = getToken();
+        const res = await fetch(`${API_BASE}/api/perdas_data`, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (!res.ok) throw new Error("Erro na API");
+        const data = await res.json();
+        if (data && data.data) { perdasDataCache = data.data; updatePerdasView(); }
+    } catch (err) { console.error(err); }
 }
 
 function formatCurrency(val) {
@@ -201,6 +216,9 @@ function processApiData(apiResponse) {
 document.getElementById('yearSelect').addEventListener('change', (e) => { 
     renderYear(e.target.value); 
     if(receitasDataCache) updateReceitasView();
+    if(rhDataCache) updateRhView();
+    if(perdasDataCache) updatePerdasView();
+    updateCustosView();
 });
 
 function renderYear(year) {
@@ -264,6 +282,109 @@ function updateReceitasView() {
         type: 'doughnut',
         data: { labels: ['PIX', 'Cartão (C/D)', 'Dinheiro', 'Caderneta'], datasets: [{ data: [totPix, (totCredito+totDebito), totDinheiro, totCaderneta], backgroundColor: ['#36b37e', '#4a7af7', '#f59e0b', '#ef4444'], borderWidth: 0 }] },
         options: { responsive: true, plugins: { legend: { position: 'right', labels: { color: '#414a63' } } } }
+    });
+}
+
+function updateCustosView() {
+    if(!dashboardDataCache) return;
+    const year = document.getElementById('yearSelect').value || "2024";
+    const data = dashboardDataCache.data[year];
+    if(!data) return;
+    
+    const sum = (arr) => arr.reduce((a, b) => a + (b || 0), 0);
+    const totDespesas = sum(data.despesas);
+    const totVendas = sum(data.vendas);
+    const margem = totVendas ? ((totVendas - totDespesas) / totVendas) * 100 : 0;
+    
+    document.getElementById('kpiCustosTotal').innerText = formatCurrency(totDespesas);
+    document.getElementById('kpiMargem').innerText = margem.toFixed(1) + "%";
+    
+    const ctxCustos = document.getElementById('chartCustosEvolucao').getContext('2d');
+    if(charts.custosEvolucao) charts.custosEvolucao.destroy();
+    charts.custosEvolucao = new Chart(ctxCustos, {
+        type: 'line',
+        data: { labels: months, datasets: [
+            { label: 'Despesas', data: data.despesas, borderColor: '#f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.1)', fill: true, tension: 0.4 },
+            { label: 'Resultado Operacional', data: data.ro, borderColor: '#36b37e', backgroundColor: 'rgba(54, 179, 126, 0.1)', fill: true, tension: 0.4 }
+        ]},
+        options: { responsive: true, scales: { y: { grid: { color: 'rgba(65, 74, 99, 0.05)' } }, x: { grid: { display: false } } }, plugins: { legend: { labels: { color: '#414a63' } } } }
+    });
+}
+
+function updateRhView() {
+    if(!rhDataCache) return;
+    const year = document.getElementById('yearSelect').value || "2024";
+    const data = rhDataCache[year];
+    if(!data) return;
+    
+    const sum = (arr) => arr.reduce((a, b) => a + (b || 0), 0);
+    const totFolha = sum(data.folha);
+    const totRescisao = sum(data.rescisao);
+    
+    document.getElementById('kpiFolha').innerText = formatCurrency(totFolha);
+    document.getElementById('kpiRescisao').innerText = formatCurrency(totRescisao);
+    
+    const ctxRh = document.getElementById('chartRH').getContext('2d');
+    if(charts.rh) charts.rh.destroy();
+    charts.rh = new Chart(ctxRh, {
+        type: 'bar',
+        data: { labels: months, datasets: [
+            { label: 'Folha de Pagamento', data: data.folha, backgroundColor: '#4a7af7' },
+            { label: 'Rescisões', data: data.rescisao, backgroundColor: '#ef4444' }
+        ]},
+        options: { responsive: true, scales: { x: { stacked: true }, y: { stacked: true } } }
+    });
+}
+
+function updatePerdasView() {
+    if(!perdasDataCache) return;
+    const year = document.getElementById('yearSelect').value || "2024";
+    const data = perdasDataCache[year];
+    if(!data) return;
+    
+    const sum = (arr) => arr.reduce((a, b) => a + (b || 0), 0);
+    
+    const perdasSetores = {
+        'Confeitaria': sum(data.confeitaria),
+        'Produção': sum(data.producao),
+        'Pizza': sum(data.pizza),
+        'Cozinha': sum(data.cozinha),
+        'Sushi': sum(data.sushi),
+        'Atendimento': sum(data.atendimento)
+    };
+    
+    const totPerdas = sum(data.total_perdas);
+    const totVendas = sum(data.total_vendas);
+    const impacto = totVendas ? (totPerdas / totVendas) * 100 : 0;
+    
+    let worstSector = 'Nenhum';
+    let worstVal = 0;
+    for(let k in perdasSetores) {
+        if(perdasSetores[k] > worstVal) { worstVal = perdasSetores[k]; worstSector = k; }
+    }
+    
+    document.getElementById('kpiPerdaTotal').innerText = formatCurrency(totPerdas);
+    document.getElementById('kpiSetorCritico').innerText = worstSector;
+    document.getElementById('kpiImpactoVendas').innerText = impacto.toFixed(2) + "%";
+    
+    // Doughnut
+    const ctxPerdas = document.getElementById('chartPerdasDoughnut').getContext('2d');
+    if(charts.perdasDough) charts.perdasDough.destroy();
+    charts.perdasDough = new Chart(ctxPerdas, {
+        type: 'doughnut',
+        data: { labels: Object.keys(perdasSetores), datasets: [{ data: Object.values(perdasSetores), backgroundColor: ['#f59e0b', '#ef4444', '#36b37e', '#4a7af7', '#8b5cf6', '#ec4899'], borderWidth: 0 }] },
+        options: { responsive: true, plugins: { legend: { position: 'right', labels: { color: '#414a63' } } } }
+    });
+    
+    // Line
+    const ctxPerdasL = document.getElementById('chartPerdasLinha').getContext('2d');
+    if(charts.perdasLinha) charts.perdasLinha.destroy();
+    charts.perdasLinha = new Chart(ctxPerdasL, {
+        type: 'line',
+        data: { labels: months, datasets: [
+            { label: 'Perdas Totais', data: data.total_perdas, borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)', fill: true, tension: 0.4 }
+        ]},
+        options: { responsive: true, scales: { y: { grid: { color: 'rgba(65, 74, 99, 0.05)' } }, x: { grid: { display: false } } } }
     });
 }
 

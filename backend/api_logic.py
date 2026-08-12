@@ -213,6 +213,95 @@ def get_receitas_data(tenant_id="visitante"):
         
     return {'data': results}
 
+def get_rh_data(tenant_id="visitante"):
+    import awswrangler as wr
+    import os
+    s3_bucket = os.environ.get("S3_BUCKET_NAME", "araujo-bi-datalake")
+    try:
+        df_folha = wr.s3.read_parquet(path=f"s3://{s3_bucket}/clientes/{tenant_id}/bronze/bronze_2_folha_de_pagamento_.parquet")
+        df_resc = wr.s3.read_parquet(path=f"s3://{s3_bucket}/clientes/{tenant_id}/bronze/bronze_3_rescisões_.parquet")
+    except Exception as e:
+        return {'error': 'Dados não encontrados'}
+
+    folha_matrix = df_folha.values.tolist()
+    resc_matrix = df_resc.values.tolist()
+    
+    # Extrair os anos do cabeçalho da folha
+    # A linha 0 tem os anos nas colunas 2 em diante
+    anos_linha = folha_matrix[0] if len(folha_matrix) > 0 else []
+    anos = []
+    col_map = {}
+    for i, cell in enumerate(anos_linha):
+        if str(cell).replace('.0', '') in ['2023', '2024', '2025', '2026']:
+            ano = str(cell).replace('.0', '')
+            anos.append(ano)
+            col_map[ano] = i
+            
+    results = {}
+    for ano in anos:
+        folha_meses = []
+        resc_meses = []
+        col_idx = col_map[ano]
+        
+        # Pega linhas 1 a 12 para meses
+        for m in range(1, 13):
+            if m < len(folha_matrix):
+                val = clean_val(folha_matrix[m][col_idx])
+                folha_meses.append(val if val is not None else 0)
+            if m < len(resc_matrix):
+                val_resc = clean_val(resc_matrix[m][col_idx])
+                resc_meses.append(val_resc if val_resc is not None else 0)
+                
+        results[ano] = {
+            'folha': folha_meses,
+            'rescisao': resc_meses
+        }
+    return {'data': results}
+
+def get_perdas_data(tenant_id="visitante"):
+    import awswrangler as wr
+    import os
+    s3_bucket = os.environ.get("S3_BUCKET_NAME", "araujo-bi-datalake")
+    try:
+        df_perdas = wr.s3.read_parquet(path=f"s3://{s3_bucket}/clientes/{tenant_id}/bronze/bronze_5_perdas_.parquet")
+    except Exception as e:
+        return {'error': 'Dados não encontrados'}
+        
+    matrix = df_perdas.values.tolist()
+    results = {}
+    
+    # Procurar por anos
+    for r, row in enumerate(matrix):
+        if len(row) > 1 and str(row[1]).replace('.0', '') in ['2023', '2024', '2025', '2026']:
+            ano = str(row[1]).replace('.0', '')
+            
+            # As próximas linhas têm setores
+            confeitaria = extract_row(matrix, 'confeitaria', r, r+10)
+            producao = extract_row(matrix, 'produção', r, r+10)
+            if sum(x is None for x in producao) == 12: producao = extract_row(matrix, 'producao', r, r+10)
+            pizza = extract_row(matrix, 'pizza', r, r+10)
+            cozinha = extract_row(matrix, 'cozinha', r, r+10)
+            sushi = extract_row(matrix, 'sushi', r, r+10)
+            atend = extract_row(matrix, 'atendimento', r, r+10)
+            total = extract_row(matrix, 'total', r, r+10)
+            vendas = extract_row(matrix, 'vendas', r, r+12)
+            
+            # Subtrai 1 porque o extract row pega a partir da coluna seguinte da keyword
+            # E na planilha Perdas, a coluna da keyword é B (idx 1), entao os dados estao a partir do idx 2 (Jan a Dez = 12 cols)
+            # Mas o total ta no final.
+            results[ano] = {
+                'confeitaria': confeitaria[:12],
+                'producao': producao[:12],
+                'pizza': pizza[:12],
+                'cozinha': cozinha[:12],
+                'sushi': sushi[:12],
+                'atendimento': atend[:12],
+                'total_perdas': total[:12],
+                'total_vendas': vendas[:12]
+            }
+            
+    return {'data': results}
+
 if __name__ == "__main__":
     import json
     print(json.dumps(get_dashboard_data(), indent=2))

@@ -1,26 +1,81 @@
-# Araujo BI - Dashboard de Inteligência Executiva 📊
+# Apex Analytics - Sistema SaaS Multi-Tenant para Padarias
 
-Aplicação *Zero-Backend* desenvolvida para transformar dados isolados em planilhas financeiras em um motor de decisão visual, preditivo e focado em estancar drenagens de caixa.
+![Apex Analytics - Dashboard](https://github.com/alissonjns/araujo-bi/blob/main/dashboard-web/assets/placeholder_dashboard.png?raw=true)
 
-## 🚀 Funcionalidades (Features)
-- **Privacidade Total (Zero-Backend):** Os dados são processados nativamente no navegador do cliente usando a RAM local através da biblioteca `SheetJS`. Nenhuma informação financeira é enviada para servidores na nuvem.
-- **Detecção de "Ralos Invisíveis":** Algoritmo que varre os históricos de despesas e isola o prejuízo exato causado por Taxas de Antecipação de Cartão de Crédito.
-- **Machine Learning Integrado:** Regressão linear aplicada ao histórico de vendas brutas para projetar faturamentos futuros.
-- **Geração de Apresentação Executiva:** Integração com `PptxGenJS` que permite a exportação automática de todo o relatório de inteligência para um arquivo editável do PowerPoint (`.pptx`) com apenas 1 clique.
+Bem-vindo ao repositório do **Apex Analytics**, uma solução de inteligência de negócios (BI) ponta a ponta projetada inicialmente para o varejo alimentício (Padarias), transformando dados complexos de planilhas locais em painéis web modernos, rápidos e orientados à tomada de decisão executiva.
 
-## 🛠️ Tecnologias Utilizadas
-- **HTML5, CSS3 (Vanilla)** com design baseado em *Glassmorphism* e alto contraste (*Dark Mode*).
-- **JavaScript (ES6+)** como motor de manipulação de dados e regras de negócio.
-- **Chart.js** para visualização de dados dinâmica.
-- **SheetJS (xlsx)** para parsing de arquivos Excel direto no cliente.
-- **PptxGenJS** para geração de arquivos de apresentação de forma autônoma.
+---
 
-## 🔒 Segurança (Data Privacy)
-O repositório foi configurado para **rejeitar o versionamento** de qualquer arquivo de banco de dados e planilhas sensíveis (`*.xlsx`, `*.xls`, `*.csv`).
-O processamento é feito localmente e temporariamente na máquina de quem acessa o painel.
+## 💡 O Que é o Projeto?
+O Apex Analytics é uma plataforma **SaaS (Software as a Service)** escalável. O modelo de negócios resolve um grande problema de pequenos e médios varejistas: a incapacidade de interpretar dezenas de planilhas financeiras desconexas. 
 
-## 🌐 Como Rodar Localmente
-1. Clone este repositório.
-2. Acesse a pasta `dashboard-web`.
-3. Abra o arquivo `index.html` com o *Live Server* ou qualquer servidor estático local.
-4. Arraste uma planilha padrão de faturamento para dentro do sistema.
+A aplicação realiza a **ingestão automática** de planilhas (arquivos do ERP do cliente), converte e estrutura os dados usando Engenharia de Dados em nuvem (Data Lake), e entrega visualizações ricas via web com um layout corporativo (Light Theme) projetado para **gerar valor de negócio** através de insights (ex: rastreamento de "Fiado", ofensores de CMV, custos trabalhistas ocultos).
+
+---
+
+## 🚀 Valor de Negócio Gerado (Diferencial)
+O projeto não apenas empilha gráficos. Ele possui inteligência focada na "dor do dono":
+
+1. **O "Ralo Invisível" (Controle de Perdas):** O motor de dados analisa as perdas e as agrupa por setor (Confeitaria, Sushi, Cozinha), identificando matematicamente o *Setor Ofensor* e calculando o impacto direto no percentual de vendas gerais.
+2. **Previsão Analítica (ML):** Utiliza tendências e regressão estatística no backend Python para gerar previsões de faturamento baseadas nos últimos 6 meses consolidados.
+3. **Gestão de Risco de Crédito (Fiado):** Um módulo exclusivo na aba "Receitas" que destaca o volume de vendas via "Caderneta" frente a opções de liquidez imediata (PIX), com alertas visuais de risco.
+4. **Isolamento Multi-Cliente (Multi-Tenant):** Preparado para escalar para *n* clientes. Dados são segregados no AWS S3 por `tenant_id` e a segurança no frontend é gerida via JWTs do AWS Cognito.
+
+---
+
+## 🛠 Tecnologias Utilizadas
+
+### Engenharia de Dados & Backend (Python)
+- **FastAPI:** Para a criação da API Rest ultrarrápida.
+- **AWS Data Wrangler & Pandas:** Limpeza, transformação e salvamento estruturado (ETL) em formato otimizado `.parquet` na AWS.
+- **Mangum:** Adapter para rodar a aplicação inteira em uma infraestrutura Serverless (AWS Lambda).
+
+### Infraestrutura em Nuvem (AWS)
+- **AWS S3:** Servindo como o Data Lake (camada Bronze, Silver e Gold).
+- **AWS Cognito:** Autenticação, gestão de usuários e separação por grupos (Ex: `Araujo-Admins`).
+- **AWS API Gateway & Lambda:** Orquestração e computação backend 100% serverless, cobrado apenas por uso.
+
+### Front-End Web (SPA)
+- **HTML5, Vanilla CSS3, Vanilla JavaScript:** Arquitetura limpa sem depender de frameworks pesados, garantindo carregamento instantâneo.
+- **Chart.js:** Renderização de Gráficos analíticos.
+- **Single Page Application (SPA):** Navegação entre abas sem reload de página, com cache inteligente.
+
+---
+
+## 🕹 Como Testar (Ambiente de Demonstração)
+
+Você pode acessar o ambiente de testes de demonstração.
+
+1. **Acesse o Sistema (Hospedado no GitHub Pages):**
+   [🔗 Acessar Dashboard Apex Analytics](https://alissonjns.github.io/araujo-bi/dashboard-web/index.html)
+
+2. **Como o Usuário Visitante (Demo):**
+   Acesse a URL e veja o layout inicial. Envie a planilha de teste disponibilizada (ou invente dados baseados nela) e o sistema alimentará as abas automaticamente na sua sessão!
+
+### Como rodar o Backend Localmente
+
+Se você clonou este repositório e deseja testar o Motor Python na sua máquina (sem necessariamente jogar para a AWS):
+
+```bash
+# 1. Clone o Repositório
+git clone https://github.com/alissonjns/araujo-bi.git
+cd araujo-bi/backend
+
+# 2. Instale as dependências
+pip install -r requirements.txt
+
+# 3. Inicie o Servidor FastAPI
+uvicorn main:app --reload
+```
+
+O backend subirá em `http://127.0.0.1:8000`. Acesse `http://127.0.0.1:8000/docs` para ver e testar a documentação interativa da API.
+
+---
+
+## 📸 Screenshots (Sneak Peek)
+
+### Visão Geral & KPIs
+*(Em breve - Adicione o print aqui)*
+
+### Módulo de Controle de Perdas
+*(Em breve - Adicione o print aqui)*
