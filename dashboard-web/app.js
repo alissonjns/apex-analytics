@@ -75,69 +75,100 @@ document.querySelectorAll('.nav-link').forEach(link => {
     });
 });
 
+// ---- LocalStorage Cache Helpers ----
+const CACHE_KEY_DASHBOARD = 'apex_dashboard_data';
+const CACHE_KEY_RECEITAS  = 'apex_receitas_data';
+const CACHE_KEY_RH        = 'apex_rh_data';
+
+function saveToCache(key, data) {
+    try { localStorage.setItem(key, JSON.stringify(data)); } catch(e) {}
+}
+function loadFromCache(key) {
+    try { const d = localStorage.getItem(key); return d ? JSON.parse(d) : null; } catch(e) { return null; }
+}
+
 // Fetch Data from Backend
 async function fetchDashboardData() {
+    // 1. Carrega cache do localStorage IMEDIATAMENTE (evita tela vazia no F5)
+    const cached = loadFromCache(CACHE_KEY_DASHBOARD);
+    if (cached && cached.data && Object.keys(cached.data).length > 0) {
+        dashboardDataCache = cached;
+        processApiData(cached);
+    }
+
+    // 2. Faz a chamada real na API (atualiza os dados em background)
     try {
         loading.classList.remove('hidden');
         const token = getToken();
         const res = await fetch(`${API_BASE}/api/dashboard_data`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+            headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (!res.ok) throw new Error("Erro na API");
+        if (!res.ok) throw new Error("API retornou " + res.status);
         const data = await res.json();
-        
+
         if (data.error) {
-            alert("Erro do Servidor: " + data.error + "\n\n" + data.trace);
-            showUploadView();
+            console.error("Erro do Servidor:", data.error);
+            if (!cached) showUploadView();
             return;
         }
-        
+
         if (data && data.data && Object.keys(data.data).length > 0) {
             dashboardDataCache = data;
+            saveToCache(CACHE_KEY_DASHBOARD, data); // salva no localStorage para o proximo F5
             processApiData(data);
         } else {
-            // No data in DB yet
-            showUploadView();
+            if (!cached) showUploadView(); // so vai pra upload se nao havia cache
         }
     } catch (err) {
-        console.error("No database connection or empty data", err);
-        showUploadView();
+        console.error("Falha na API dashboard (Lambda frio?):", err);
+        if (!cached) showUploadView();
     } finally {
         loading.classList.add('hidden');
     }
 }
 
 async function fetchReceitasData() {
+    const cached = loadFromCache(CACHE_KEY_RECEITAS);
+    if (cached) { receitasDataCache = cached; updateReceitasView(); }
     try {
         const token = getToken();
         const res = await fetch(`${API_BASE}/api/receitas_data`, { headers: { 'Authorization': `Bearer ${token}` } });
-        if (!res.ok) throw new Error("Erro na API");
+        if (!res.ok) throw new Error("Erro na API receitas");
         const data = await res.json();
-        if (data && data.data) { receitasDataCache = data.data; updateReceitasView(); }
-    } catch (err) { console.error(err); }
+        if (data && data.data) {
+            receitasDataCache = data.data;
+            saveToCache(CACHE_KEY_RECEITAS, data.data);
+            updateReceitasView();
+        }
+    } catch (err) { console.error("Falha receitas:", err); }
 }
 
 async function fetchRhData() {
+    const cached = loadFromCache(CACHE_KEY_RH);
+    if (cached) { rhDataCache = cached; updateRhView(); }
     try {
         const token = getToken();
         const res = await fetch(`${API_BASE}/api/rh_data`, { headers: { 'Authorization': `Bearer ${token}` } });
-        if (!res.ok) throw new Error("Erro na API");
+        if (!res.ok) throw new Error("Erro na API rh");
         const data = await res.json();
-        if (data && data.data) { rhDataCache = data.data; updateRhView(); }
-    } catch (err) { console.error(err); }
+        if (data && data.data) {
+            rhDataCache = data.data;
+            saveToCache(CACHE_KEY_RH, data.data);
+            updateRhView();
+        }
+    } catch (err) { console.error("Falha rh:", err); }
 }
 
 async function fetchPerdasData() {
     try {
         const token = getToken();
         const res = await fetch(`${API_BASE}/api/perdas_data`, { headers: { 'Authorization': `Bearer ${token}` } });
-        if (!res.ok) throw new Error("Erro na API");
+        if (!res.ok) throw new Error("Erro na API perdas");
         const data = await res.json();
         if (data && data.data) { perdasDataCache = data.data; updatePerdasView(); }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error("Falha perdas:", err); }
 }
+
 
 function formatCurrency(val) {
     if(!val) return 'R$ 0,00';
