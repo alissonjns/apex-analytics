@@ -27,20 +27,21 @@ def read_root():
 
 import base64
 import json
-from fastapi import Request, Depends
+from fastapi import Request, Depends, HTTPException
 
 def get_tenant_id(request: Request):
     """Extrai o Tenant ID (cliente) baseado no grupo do JWT."""
     auth_header = request.headers.get("Authorization", "")
     if not auth_header:
-        return "visitante"
+        raise HTTPException(status_code=401, detail="Não autorizado. Token ausente.")
     
     try:
         # Pega a parte do payload do JWT (Header.Payload.Signature)
         token = auth_header.split(" ")[1] if " " in auth_header else auth_header
         payload_b64 = token.split(".")[1]
         
-        # Corrige o padding do Base64
+        # Corrige o padding do Base64 e trata url-safe chars
+        payload_b64 = payload_b64.replace('-', '+').replace('_', '/')
         padded = payload_b64 + "=" * ((4 - len(payload_b64) % 4) % 4)
         payload = json.loads(base64.b64decode(padded).decode("utf-8"))
         
@@ -49,11 +50,14 @@ def get_tenant_id(request: Request):
         if "Araujo-Admins" in groups:
             return "araujo"
             
-        # Para usuários comuns/visitantes, cria um cofre isolado baseado no ID deles
-        return payload.get("sub", "visitante")
+        # Para usuários autenticados sem grupo, cria um cofre isolado baseado no ID deles
+        sub_id = payload.get("sub")
+        if not sub_id:
+            raise HTTPException(status_code=401, detail="Token JWT inválido: sem identificador (sub).")
+        return sub_id
     except Exception as e:
         print(f"Erro ao extrair token: {e}")
-        return "visitante"
+        raise HTTPException(status_code=401, detail="Token JWT inválido ou expirado.")
 
 @app.get("/api/dashboard_data")
 def get_dashboard(request: Request):
