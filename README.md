@@ -1,65 +1,69 @@
-# Apex Analytics - Sistema SaaS Multi-Tenant para Padarias
+# Apex Analytics - Plataforma de Inteligência e Engenharia de Dados (SaaS)
 
-![Apex Analytics - Dashboard](https://github.com/alissonjns/araujo-bi/blob/main/dashboard-web/assets/placeholder_dashboard.png?raw=true)
+Bem-vindo ao repositório do **Apex Analytics**, uma solução de Data Analytics e Business Intelligence (BI) ponta a ponta construída com foco em Engenharia de Dados e Infraestrutura Cloud. O projeto transforma dados desestruturados e isolados em painéis gerenciais robustos, rápidos e inteligentes.
 
-Bem-vindo ao repositório do **Apex Analytics**, uma solução de inteligência de negócios (BI) ponta a ponta projetada inicialmente para o varejo alimentício (Padarias), transformando dados complexos de planilhas locais em painéis web modernos, rápidos e orientados à tomada de decisão executiva.
-
----
-
-## 💡 O Que é o Projeto?
-O Apex Analytics é uma plataforma **SaaS (Software as a Service)** escalável. O modelo de negócios resolve um grande problema de pequenos e médios varejistas: a incapacidade de interpretar dezenas de planilhas financeiras desconexas. 
-
-A aplicação realiza a **ingestão automática** de planilhas (arquivos do ERP do cliente), converte e estrutura os dados usando Engenharia de Dados em nuvem (Data Lake), e entrega visualizações ricas via web com um layout corporativo (Light Theme) projetado para **gerar valor de negócio** através de insights (ex: rastreamento de "Fiado", ofensores de CMV, custos trabalhistas ocultos).
+Inicialmente modelado para o nicho de Varejo Alimentício (Padarias e Restaurantes), o motor da aplicação é escalável e adaptável a qualquer setor que possua fluxo de caixa e gestão de estoque.
 
 ---
 
-## 🚀 Valor de Negócio Gerado (Diferencial)
-O projeto não apenas empilha gráficos. Ele possui inteligência focada na "dor do dono":
+## 💡 O Problema e a Solução
 
-1. **O "Ralo Invisível" (Controle de Perdas):** O motor de dados analisa as perdas e as agrupa por setor (Confeitaria, Sushi, Cozinha), identificando matematicamente o *Setor Ofensor* e calculando o impacto direto no percentual de vendas gerais.
-2. **Previsão Analítica (ML):** Utiliza tendências e regressão estatística no backend Python para gerar previsões de faturamento baseadas nos últimos 6 meses consolidados.
-3. **Gestão de Risco de Crédito (Fiado):** Um módulo exclusivo na aba "Receitas" que destaca o volume de vendas via "Caderneta" frente a opções de liquidez imediata (PIX), com alertas visuais de risco.
-4. **Isolamento Multi-Cliente (Multi-Tenant):** Preparado para escalar para *n* clientes. Dados são segregados no AWS S3 por `tenant_id` e a segurança no frontend é gerida via JWTs do AWS Cognito.
+Pequenos e médios varejistas sofrem com a **fragmentação de dados**: dezenas de planilhas financeiras isoladas geradas por sistemas de ERP legados, tornando impossível a tomada de decisão em tempo real.
+
+O **Apex Analytics** atua como uma plataforma **SaaS Multi-Tenant**. Ele automatiza a ingestão dessas planilhas caóticas, executa um pipeline de ETL (Extract, Transform, Load) na nuvem e entrega métricas cruciais de negócio em uma interface web corporativa e de carregamento instantâneo.
+
+### 🚀 Valor de Negócio (Features Principais)
+1. **Engenharia de Dados Resiliente:** Motor de extração (Python/Pandas) tolerante a falhas, capaz de ingerir planilhas desestruturadas, com nomes incorretos, caracteres inválidos e formatação de moeda inconsistente, simulando cenários reais e sujos de clientes.
+2. **Motor de Inteligência Artificial (IA):** Integração para geração de relatórios dinâmicos em PDF. A aplicação analisa matematicamente os resultados do dashboard em tela e redige diagnósticos empresariais explicativos utilizando APIs avançadas de IA.
+3. **Identificação de Ofensores (Perdas e CMV):** Algoritmos que cruzam receitas e perdas operacionais para identificar matematicamente qual setor (ex: Confeitaria vs Produção) está "sangrando" o caixa.
+4. **Isolamento de Dados (Multi-Tenant):** Arquitetura segura onde múltiplos clientes podem utilizar o SaaS sem vazamento de dados, com partições físicas no Data Lake (AWS S3) por `tenant_id`.
 
 ---
 
-## 🛠 Tecnologias Utilizadas
+## 🏗 Arquitetura e Infraestrutura Cloud
 
-### Engenharia de Dados & Backend (Python)
-- **FastAPI:** Para a criação da API Rest ultrarrápida.
-- **AWS Data Wrangler & Pandas:** Limpeza, transformação e salvamento estruturado (ETL) em formato otimizado `.parquet` na AWS.
-- **Mangum:** Adapter para rodar a aplicação inteira em uma infraestrutura Serverless (AWS Lambda).
+A infraestrutura foi desenhada para ser **100% Serverless** na AWS (Amazon Web Services), garantindo que o custo operacional seja zero quando a plataforma não estiver em uso, mas com capacidade de escalar instantaneamente para milhares de requisições.
 
-### Infraestrutura em Nuvem (AWS)
-- **AWS S3:** Servindo como o Data Lake (camada Bronze, Silver e Gold).
-- **AWS Cognito:** Autenticação, gestão de usuários e separação por grupos (Ex: `Araujo-Admins`).
-- **AWS API Gateway & Lambda:** Orquestração e computação backend 100% serverless, cobrado apenas por uso.
+### Por que Serverless e AWS?
+A decisão pela arquitetura Serverless (Lambda + API Gateway + S3) foi pautada na **escalabilidade e eficiência de custos**. Não há servidores ociosos para gerenciar. O armazenamento no S3 como Data Lake oferece durabilidade de 99.9999999% e armazenamento virtualmente infinito a custos centavos.
 
-### Front-End Web (SPA)
-- **HTML5, Vanilla CSS3, Vanilla JavaScript:** Arquitetura limpa sem depender de frameworks pesados, garantindo carregamento instantâneo.
-- **Chart.js:** Renderização de Gráficos analíticos.
-- **Single Page Application (SPA):** Navegação entre abas sem reload de página, com cache inteligente.
+### 🛠 Stack Tecnológico
+* **Backend & ETL:** Python 3, FastAPI, Pandas, AWS Data Wrangler (awswrangler)
+* **Cloud Computing:** AWS Lambda (com adapter Mangum), Amazon API Gateway
+* **Segurança e Autenticação:** Amazon Cognito (JWTs, Gestão de Usuários)
+* **Data Lake (Armazenamento):** Amazon S3 (formato colunar `.parquet` estruturado por partições)
+* **Frontend:** HTML5, CSS3, JavaScript (Vanilla SPA) e Chart.js
+
+### 🔄 O Pipeline de Dados (Arquitetura Medallion "On-the-Fly")
+1. **Camada Ingestão:** O frontend envia a planilha do cliente em memória para a API.
+2. **Camada Bronze (Raw):** O script `etl.py` ingere e converte as abas da planilha para arquivos `.parquet` (compressão colunar), preservando o dado bruto como texto no S3 (Partição: `/clientes/{tenant_id}/bronze/`).
+3. **Camadas Silver/Gold (Processamento On-the-Fly):** Visando otimizar custos para bases de dados enxutas, a transformação de dados (limpeza de caracteres, conversão para numéricos - Silver) e as agregações de negócio (cálculos de KPIs, médias, cruzamento de dados - Gold) são executadas **em tempo real** na memória da AWS Lambda (`api_logic.py`) no momento em que o usuário acessa o dashboard.
+
+> **Escalabilidade Futura:** Caso o volume de dados do cliente cresça para Terabytes, o projeto está preparado para desacoplar as camadas Silver e Gold, transferindo o processamento pesado "On-the-Fly" para **AWS Glue Jobs** agendados, que salvariam os agregados físicos de volta no S3 para leitura ultrarrápida (Amazon Athena).
 
 ---
 
 ## 🕹 Como Testar (Ambiente de Demonstração)
 
-Você pode acessar o ambiente de testes de demonstração.
+Você pode interagir com o ambiente de produção (Frontend via GitHub Pages conectando na AWS).
 
-1. **Acesse o Sistema (Hospedado no GitHub Pages):**
-   [🔗 Acessar Dashboard Apex Analytics](https://alissonjns.github.io/araujo-bi/dashboard-web/index.html)
-
+1. **Acesse o Sistema:** [🔗 Acessar Dashboard Apex Analytics](https://alissonjns.github.io/araujo-bi/dashboard-web/index.html)
 2. **Como o Usuário Visitante (Demo):**
-   Acesse a URL e veja o layout inicial. Para ver o painel funcionar, você precisará fazer upload de uma planilha no formato exato que nosso ETL espera.
+   Ao acessar, você verá a tela de upload inicial. Para ver o Data Lake trabalhar, você precisará enviar dados.
+   
    - 📥 **[Baixe a Planilha de Demonstração (ZIP) Aqui](https://raw.githubusercontent.com/alissonjns/araujo-bi/main/Apex_Demo_Data.zip)**
-   - Extraia o arquivo Excel e faça o upload no sistema para ver o Data Lake processar as 7 abas automaticamente, populando os gráficos em tempo real na sua sessão!
+   - Extraia a pasta e faça o upload do arquivo Excel na tela do sistema. A AWS Lambda processará os dados em segundos e montará todo o dashboard.
 
-   > [!NOTE]  
-   > **Engenharia de Dados Aplicada:** A base de demonstração acima contém **dados fictícios gerados por IA**. Mais do que isso, a base foi projetada propositalmente de forma **caótica e suja** (nomes incorretos de abas, espaçamentos absurdos, valores de moeda formatados como texto ao invés de números, etc.). O objetivo dessa base desestruturada é provar a robustez e tolerância a falhas do nosso motor extrator (ETL), simulando a realidade de planilhas de usuários leigos no mercado!
+> [!WARNING]  
+> **Engenharia de Dados na Prática:** A base de demonstração para download acima não é uma planilha perfeita. Ela foi **gerada por Inteligência Artificial** com o intuito de ser **propositalmente caótica**: abas mal nomeadas (` 5_P e r d a s `), colunas em branco, formatações de moeda corrompidas (`" R$   2.500,45 "`) e lixo visual. 
+> 
+> O objetivo dessa base de testes é provar a incrível resiliência, expressões regulares e a robustez do motor de extração (ETL Python) do sistema, que consegue limpar e entender dados sujos automaticamente!
 
-### Como rodar o Backend Localmente
+---
 
-Se você clonou este repositório e deseja testar o Motor Python na sua máquina (sem necessariamente jogar para a AWS):
+## 💻 Como Rodar o Backend Localmente
+
+Se você deseja inspecionar o motor Python ou contribuir com o projeto, pode rodá-lo localmente (bypassando o deploy na AWS Lambda).
 
 ```bash
 # 1. Clone o Repositório
@@ -69,18 +73,16 @@ cd araujo-bi/backend
 # 2. Instale as dependências
 pip install -r requirements.txt
 
-# 3. Inicie o Servidor FastAPI
+# 3. Defina as Variáveis de Ambiente (Simulação AWS)
+# No Windows PowerShell:
+$env:S3_BUCKET_NAME="seu-bucket-s3"
+$env:COGNITO_USER_POOL_ID="seu-pool-id"
+
+# 4. Inicie o Servidor FastAPI
 uvicorn main:app --reload
 ```
-
-O backend subirá em `http://127.0.0.1:8000`. Acesse `http://127.0.0.1:8000/docs` para ver e testar a documentação interativa da API.
+A API ficará disponível em `http://127.0.0.1:8000`. 
+Acesse a documentação interativa nativa do FastAPI Swagger em `http://127.0.0.1:8000/docs` para testar os endpoints de extração.
 
 ---
-
-## 📸 Screenshots (Sneak Peek)
-
-### Visão Geral & KPIs
-*(Em breve - Adicione o print aqui)*
-
-### Módulo de Controle de Perdas
-*(Em breve - Adicione o print aqui)*
+*Projeto desenvolvido como Prova de Conceito de arquitetura Cloud SaaS e Engenharia de Dados corporativa.*
