@@ -6,8 +6,8 @@ let globalData = null;
 let charts = {};
 
 // DOM Elements
-const uploadScreen = document.getElementById('uploadScreen');
-const dashboardScreen = document.getElementById('dashboardScreen');
+const uploadScreen = document.getElementById('view-integracoes');
+const dashboardScreen = document.getElementById('view-visao-geral');
 const fileInput = document.getElementById('excelFile');
 const loading = document.getElementById('loading');
 const btnExportPPTX = document.getElementById('btnExportPPTX');
@@ -44,9 +44,30 @@ document.addEventListener('DOMContentLoaded', () => {
         badge.innerText = role;
         badge.style.background = badgeColor;
     }
-    
+
+    setupNavigation();
     fetchDashboardData();
 });
+
+// Setup Sidebar Navigation
+function setupNavigation() {
+    const navLinks = document.querySelectorAll('.nav-link');
+    const views = document.querySelectorAll('.view-container');
+    const pageTitle = document.getElementById('pageTitle');
+
+    navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            navLinks.forEach(l => l.classList.remove('active'));
+            views.forEach(v => v.classList.add('hidden'));
+            
+            link.classList.add('active');
+            const targetId = link.getAttribute('data-target');
+            document.getElementById(targetId).classList.remove('hidden');
+            pageTitle.innerText = link.innerText.split(' ').slice(1).join(' '); // Remove emoji
+        });
+    });
+}
 
 // Fetch Data from Backend
 async function fetchDashboardData() {
@@ -63,27 +84,33 @@ async function fetchDashboardData() {
         
         if (data.error) {
             alert("Erro do Servidor: " + data.error + "\n\n" + data.trace);
-            uploadScreen.classList.remove('hidden');
-            dashboardScreen.classList.add('hidden');
+            showUploadView();
             return;
         }
         
         if (data && data.data && Object.keys(data.data).length > 0) {
             processApiData(data);
-            uploadScreen.classList.add('hidden');
-            dashboardScreen.classList.remove('hidden');
         } else {
             // No data in DB yet
-            uploadScreen.classList.remove('hidden');
-            dashboardScreen.classList.add('hidden');
+            showUploadView();
         }
     } catch (err) {
         console.error("No database connection or empty data", err);
-        uploadScreen.classList.remove('hidden');
-        dashboardScreen.classList.add('hidden');
+        showUploadView();
     } finally {
         loading.classList.add('hidden');
     }
+}
+
+function showUploadView() {
+    const navLinks = document.querySelectorAll('.nav-link');
+    const views = document.querySelectorAll('.view-container');
+    navLinks.forEach(l => l.classList.remove('active'));
+    views.forEach(v => v.classList.add('hidden'));
+    
+    document.querySelector('[data-target="view-integracoes"]').classList.add('active');
+    document.getElementById('view-integracoes').classList.remove('hidden');
+    document.getElementById('pageTitle').innerText = 'Configurações & Upload';
 }
 
 // File Upload Handler (Envio para o Backend Python)
@@ -170,10 +197,10 @@ function updateChartVendasRO(data) {
     charts.vendasRO = new Chart(ctx, {
         type: 'bar',
         data: { labels: months, datasets: [
-            { label: 'Vendas Brutas', data: data.vendas, backgroundColor: 'rgba(59, 130, 246, 0.8)', borderRadius: 4 },
-            { label: 'Resultado Operacional', data: data.ro, type: 'line', borderColor: '#10b981', backgroundColor: '#10b981', borderWidth: 3, tension: 0.4 }
+            { label: 'Vendas Brutas', data: data.vendas, backgroundColor: '#4318ff', borderRadius: 4 },
+            { label: 'Resultado Operacional', data: data.ro, type: 'line', borderColor: '#05cd99', backgroundColor: '#05cd99', borderWidth: 3, tension: 0.4 }
         ]},
-        options: { responsive: true, scales: { y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } }, x: { grid: { display: false }, ticks: { color: '#94a3b8' } } }, plugins: { legend: { labels: { color: '#e2e8f0' } } } }
+        options: { responsive: true, scales: { y: { grid: { color: 'rgba(43, 54, 116, 0.05)' }, ticks: { color: '#a3aed1' } }, x: { grid: { display: false }, ticks: { color: '#a3aed1' } } }, plugins: { legend: { labels: { color: '#2b3674', font: { weight: '600' } } } } }
     });
 }
 
@@ -187,8 +214,8 @@ function updateChartDespesas(data) {
     const outrasDespesas = totalDespesas - taxasCartao - taxasAntecip;
     charts.despesas = new Chart(ctx, {
         type: 'doughnut',
-        data: { labels: ['Taxa Cartão', 'Taxa Antecipação', 'Outras Despesas'], datasets: [{ data: [taxasCartao, taxasAntecip, outrasDespesas], backgroundColor: ['#f59e0b', '#ef4444', '#3b82f6'], borderWidth: 0 }] },
-        options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#e2e8f0' } } } }
+        data: { labels: ['Taxa Cartão', 'Taxa Antecipação', 'Outras Despesas'], datasets: [{ data: [taxasCartao, taxasAntecip, outrasDespesas], backgroundColor: ['#ffce20', '#ee5d50', '#4318ff'], borderWidth: 0 }] },
+        options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#2b3674', font: { weight: '600' } } } } }
     });
 }
 
@@ -198,10 +225,10 @@ function updateChartDelivery(data) {
     charts.delivery = new Chart(ctx, {
         type: 'line',
         data: { labels: months, datasets: [
-            { label: 'Vendas Loja', data: data.vendas, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true, tension: 0.4 },
-            { label: 'Vendas Delivery', data: data.delivery_vendas, borderColor: '#f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.1)', fill: true, tension: 0.4 }
+            { label: 'Vendas Loja', data: data.vendas, borderColor: '#4318ff', backgroundColor: 'rgba(67, 24, 255, 0.1)', fill: true, tension: 0.4 },
+            { label: 'Vendas Delivery', data: data.delivery_vendas, borderColor: '#ffce20', backgroundColor: 'rgba(255, 206, 32, 0.1)', fill: true, tension: 0.4 }
         ]},
-        options: { responsive: true, scales: { y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } }, x: { grid: { display: false }, ticks: { color: '#94a3b8' } } }, plugins: { legend: { labels: { color: '#e2e8f0' } } } }
+        options: { responsive: true, scales: { y: { grid: { color: 'rgba(43, 54, 116, 0.05)' }, ticks: { color: '#a3aed1' } }, x: { grid: { display: false }, ticks: { color: '#a3aed1' } } }, plugins: { legend: { labels: { color: '#2b3674', font: { weight: '600' } } } } }
     });
 }
 
