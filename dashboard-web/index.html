@@ -16,24 +16,18 @@
 <body>
     <div class="glass-bg"></div>
     
-    <!-- Tela de Login -->
-    <div id="loginScreen" class="upload-screen hidden">
-        <div class="upload-card">
-            <div class="upload-icon">🔐</div>
-            <h2>Acesso Restrito</h2>
-            <p>Faça login com suas credenciais corporativas para acessar o BI.</p>
-            <button class="btn-upload" onclick="login()">Fazer Login Seguro</button>
-        </div>
-    </div>
-
     <!-- Tela de Upload (Privacidade Total) -->
     <div id="uploadScreen" class="upload-screen">
         <div class="upload-card">
             <div class="upload-icon">🔒</div>
             <h2>Apex Analytics</h2>
-            <button onclick="logout()" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 5px 15px; border-radius: 5px; cursor: pointer; margin-bottom: 15px;">Sair (Renovar Sessão)</button>
-            <p>Selecione a planilha de receitas para processar os dados do seu cliente.</p>
-            <p class="privacy-note">O processamento é feito <strong>localmente no seu navegador</strong>. Nenhum dado é enviado para a internet.</p>
+            <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 15px;">
+                <span id="userRoleBadge" style="background: #3b82f6; color: white; padding: 5px 10px; border-radius: 12px; font-size: 0.8em; font-weight: bold;">Carregando Perfil...</span>
+                <button onclick="logout()" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 5px 15px; border-radius: 12px; cursor: pointer; font-size: 0.8em;">Sair</button>
+            </div>
+            
+            <p>Selecione a planilha para processar os dados do sistema.</p>
+            <p class="privacy-note">O processamento é feito localmente e salvo no cofre criptografado isolado da sua conta.</p>
             
             <label for="excelFile" class="btn-upload">Carregar Planilha (Excel)</label>
             <input type="file" id="excelFile" accept=".xlsx, .xls" style="display: none;">

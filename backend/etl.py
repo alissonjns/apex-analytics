@@ -6,8 +6,8 @@ import awswrangler as wr
 S3_BUCKET = os.environ.get("S3_BUCKET_NAME", "araujo-bi-datalake")
 ATHENA_DB = "araujo_bi"
 
-def run_etl(file_path):
-    print(f"Iniciando ingestão da planilha para o AWS S3: {file_path}")
+def run_etl(file_path, tenant_id="visitante"):
+    print(f"Iniciando ingestão da planilha para o AWS S3: {file_path} | Tenant: {tenant_id}")
     
     # Modo Local: Ignorando a criação do banco no Athena para rodar sem AWS
     print("Modo de Portfólio Local: Processando dados localmente.")
@@ -42,8 +42,8 @@ def run_etl(file_path):
             # Como as colunas vem sujas (Unnamed: 0), precisamos garantir que sejam todas strings pro Parquet
             df.columns = [str(c).replace(" ", "_").replace(".", "_").lower() for c in df.columns]
             
-            # Salvando no S3 como Parquet (Camada Bronze)
-            s3_path = f"s3://{S3_BUCKET}/bronze/{table_name}.parquet"
+            # Salvando no S3 como Parquet (Camada Bronze) em subpastas por tenant
+            s3_path = f"s3://{S3_BUCKET}/clientes/{tenant_id}/bronze/{table_name}.parquet"
             wr.s3.to_parquet(df=df, path=s3_path)
             print(f"  -> Upload concluído: {table_name} salvo no S3 em {s3_path}")
             

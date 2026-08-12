@@ -51,17 +51,17 @@ def extract_row(matrix, keyword, start_row=0, end_row=None):
                     return data
     return [None] * 12
 
-def get_dashboard_data():
+def get_dashboard_data(tenant_id="visitante"):
     import awswrangler as wr
     import os
     
     ATHENA_DB = "araujo_bi"
     
-    print("Consultando dados locais (Parquet)...")
+    print(f"Consultando dados locais (Parquet)... | Tenant: {tenant_id}")
     try:
         # Modo Nuvem: Lê o parquet gerado pelo ETL direto do S3
         s3_bucket = os.environ.get("S3_BUCKET_NAME", "araujo-bi-datalake")
-        s3_path = f"s3://{s3_bucket}/bronze/bronze_7_receitas_.parquet"
+        s3_path = f"s3://{s3_bucket}/clientes/{tenant_id}/bronze/bronze_7_receitas_.parquet"
         df = wr.s3.read_parquet(path=s3_path)
     except Exception as e:
         print(f"O arquivo ainda não existe no Data Lake ou não pôde ser lido: {e}")

@@ -25,18 +25,51 @@ handler = Mangum(app)
 def read_root():
     return {"message": "Apex Analytics Backend is running!"}
 
-@app.get("/api/dashboard_data")
-def get_dashboard():
+import base64
+import json
+from fastapi import Request, Depends
+
+def get_tenant_id(request: Request):
+    """Extrai o Tenant ID (cliente) baseado no grupo do JWT."""
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header:
+        return "visitante"
+    
     try:
+        # Pega a parte do payload do JWT (Header.Payload.Signature)
+        token = auth_header.split(" ")[1] if " " in auth_header else auth_header
+        payload_b64 = token.split(".")[1]
+        
+        # Corrige o padding do Base64
+        padded = payload_b64 + "=" * ((4 - len(payload_b64) % 4) % 4)
+        payload = json.loads(base64.b64decode(padded).decode("utf-8"))
+        
+        # Verifica se pertence ao grupo de administradores da Padaria Araujo
+        groups = payload.get("cognito:groups", [])
+        if "Araujo-Admins" in groups:
+            return "araujo"
+            
+        # Para usuários comuns/visitantes, cria um cofre isolado baseado no ID deles
+        return payload.get("sub", "visitante")
+    except Exception as e:
+        print(f"Erro ao extrair token: {e}")
+        return "visitante"
+
+@app.get("/api/dashboard_data")
+def get_dashboard(request: Request):
+    try:
+        tenant_id = get_tenant_id(request)
         from api_logic import get_dashboard_data
-        data = get_dashboard_data()
+        data = get_dashboard_data(tenant_id)
         return data
     except Exception as e:
         import traceback
         return {"error": str(e), "trace": traceback.format_exc()}
 
 @app.post("/upload")
-async def upload_file(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
+async def upload_file(request: Request, background_tasks: BackgroundTasks, file: UploadFile = File(...)):
+    tenant_id = get_tenant_id(request)
+    
     if not file.filename.endswith(('.xlsx', '.xls')):
         return {"error": "Por favor, envie um arquivo Excel (.xlsx)"}
     
@@ -45,15 +78,16 @@ async def upload_file(background_tasks: BackgroundTasks, file: UploadFile = File
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
         
-    # Executa o ETL de forma síncrona
+    # Executa o ETL passando o tenant_id para salvar na pasta correta
     try:
-        run_etl(file_path)
+        run_etl(file_path, tenant_id)
     except Exception as e:
         return {"error": f"Erro durante a extração: {str(e)}"}
     
     return {
         "message": "Arquivo processado e banco de dados atualizado com sucesso.",
-        "filename": file.filename
+        "filename": file.filename,
+        "tenant_id": tenant_id
     }
 
 if __name__ == "__main__":
