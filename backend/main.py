@@ -66,6 +66,17 @@ def get_dashboard(request: Request):
         import traceback
         return {"error": str(e), "trace": traceback.format_exc()}
 
+@app.get("/api/receitas_data")
+def get_receitas(request: Request):
+    try:
+        tenant_id = get_tenant_id(request)
+        from api_logic import get_receitas_data
+        data = get_receitas_data(tenant_id)
+        return data
+    except Exception as e:
+        import traceback
+        return {"error": str(e), "trace": traceback.format_exc()}
+
 @app.post("/upload")
 async def upload_file(request: Request, background_tasks: BackgroundTasks, file: UploadFile = File(...)):
     tenant_id = get_tenant_id(request)
