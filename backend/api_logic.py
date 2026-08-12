@@ -1,5 +1,5 @@
 import pandas as pd
-from database import get_db_connection
+import math
 
 def clean_val(x):
     if pd.isna(x) or x == '' or str(x).lower().strip() == 'nan':
