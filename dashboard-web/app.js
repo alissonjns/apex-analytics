@@ -225,28 +225,34 @@ fileInput.addEventListener('change', async (e) => {
 });
 
 function processApiData(apiResponse) {
-    globalData = apiResponse;
+    try {
+        globalData = apiResponse;
 
-    // Os insights agora vêm direto do servidor, não precisamos calcular no JS!
-    if (apiResponse.insights) {
-        // Fill UI
-        document.getElementById('valAntecipacao').innerText = formatMoney(apiResponse.insights.total_antecipacao);
-        document.getElementById('pctAntecipacao').innerText = formatPct(apiResponse.insights.impacto_antecipacao_pct);
-        document.getElementById('valPrevisao').innerText = formatMoney(apiResponse.insights.previsao_proximo_mes_vendas);
-    } else {
-        console.warn("API retornou sem insights. O Lambda antigo ainda está rodando!");
-    }
+        if (apiResponse.insights) {
+            document.getElementById('valAntecipacao').innerText = formatMoney(apiResponse.insights.total_antecipacao || 0);
+            document.getElementById('pctAntecipacao').innerText = formatPct(apiResponse.insights.impacto_antecipacao_pct || 0);
+            document.getElementById('valPrevisao').innerText = formatMoney(apiResponse.insights.previsao_proximo_mes_vendas || 0);
+        } else {
+            console.warn("API retornou sem insights.");
+        }
 
-    let select = document.getElementById('yearSelect');
-    select.innerHTML = '';
-    Object.keys(apiResponse.data).sort((a,b)=>b-a).forEach(y => {
-        let opt = document.createElement('option');
-        opt.value = y; opt.innerText = `Ano: ${y}`;
-        select.appendChild(opt);
-    });
-    
-    if (select.value) {
-        renderYear(select.value);
+        let select = document.getElementById('yearSelect');
+        select.innerHTML = '';
+        if (apiResponse.data && Object.keys(apiResponse.data).length > 0) {
+            Object.keys(apiResponse.data).sort((a,b)=>b-a).forEach(y => {
+                let opt = document.createElement('option');
+                opt.value = y; opt.innerText = `Ano: ${y}`;
+                select.appendChild(opt);
+            });
+            if (select.value) {
+                renderYear(select.value);
+            }
+        } else {
+            document.getElementById('pageTitle').innerText = "Erro: Dados vazios retornados!";
+        }
+    } catch (e) {
+        document.getElementById('pageTitle').innerText = "CRASH JS: " + e.message;
+        console.error(e);
     }
 }
 
