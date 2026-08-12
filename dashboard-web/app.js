@@ -45,7 +45,6 @@ document.addEventListener('DOMContentLoaded', () => {
         badge.style.background = badgeColor;
     }
 
-    setupNavigation();
     fetchDashboardData();
 })
 let dashboardDataCache = null;
