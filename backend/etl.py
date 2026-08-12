@@ -46,8 +46,9 @@ def run_etl(file_path, tenant_id="visitante"):
             processed_count += 1
             print(f"Processando aba para nuvem: {sheet}")
             
-            # Lendo a aba inteira (Camada Bronze)
-            df = pd.read_excel(file_path, sheet_name=sheet)
+            # Lendo a aba inteira (Camada Bronze) sem interpretar a primeira linha como header
+            # Isso preserva TODOS os dados da planilha sem perder a primeira linha
+            df = pd.read_excel(file_path, sheet_name=sheet, header=None)
             
             # Converter tudo para string para evitar erros de tipagem ('mixed types') no Parquet
             df = df.astype(str)

@@ -3,12 +3,18 @@ def find_parquet(s3_bucket, tenant_id, keyword):
     import awswrangler as wr
     try:
         files = wr.s3.list_objects(path=f"s3://{s3_bucket}/clientes/{tenant_id}/bronze/")
-        for f in files:
-            if keyword.lower() in f.lower():
-                return f
+        # Filtra todos os arquivos que contem a keyword
+        matches = [f for f in files if keyword.lower() in f.lower()]
+        if not matches:
+            return None
+        # Retorna o mais especifico (nome de arquivo mais curto = menos ruido)
+        # Isso evita que "pagamento" retorne "folha_de_pagamento" antes de "meios_de_pagamentos"
+        matches.sort(key=lambda f: len(f.split('/')[-1]))
+        return matches[0]
     except Exception:
         pass
     return None
+
 
 import pandas as pd
 import math
