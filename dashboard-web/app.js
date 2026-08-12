@@ -193,11 +193,14 @@ function processApiData(apiResponse) {
     globalData = apiResponse;
 
     // Os insights agora vêm direto do servidor, não precisamos calcular no JS!
-    
-    // Fill UI
-    document.getElementById('valAntecipacao').innerText = formatMoney(apiResponse.insights.total_antecipacao);
-    document.getElementById('pctAntecipacao').innerText = formatPct(apiResponse.insights.impacto_antecipacao_pct);
-    document.getElementById('valPrevisao').innerText = formatMoney(apiResponse.insights.previsao_proximo_mes_vendas);
+    if (apiResponse.insights) {
+        // Fill UI
+        document.getElementById('valAntecipacao').innerText = formatMoney(apiResponse.insights.total_antecipacao);
+        document.getElementById('pctAntecipacao').innerText = formatPct(apiResponse.insights.impacto_antecipacao_pct);
+        document.getElementById('valPrevisao').innerText = formatMoney(apiResponse.insights.previsao_proximo_mes_vendas);
+    } else {
+        console.warn("API retornou sem insights. O Lambda antigo ainda está rodando!");
+    }
 
     let select = document.getElementById('yearSelect');
     select.innerHTML = '';
