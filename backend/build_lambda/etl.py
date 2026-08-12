@@ -11,6 +11,13 @@ def run_etl(file_path, tenant_id="visitante"):
     
     # Modo Local: Ignorando a criação do banco no Athena para rodar sem AWS
     print("Modo de Portfólio Local: Processando dados localmente.")
+    
+    # Limpa a lixeira antiga do tenant ANTES de extrair as abas novas!
+    # Isso resolve o BUG do F5 recarregando planilhas fantasmas velhas.
+    try:
+        wr.s3.delete_objects(f"s3://{S3_BUCKET}/clientes/{tenant_id}/bronze/")
+    except Exception as e:
+        print(f"Falha ao limpar bronze antigo: {e}")
 
     # Lista de abas que nos interessam
     sheets_of_interest = [

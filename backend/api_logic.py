@@ -53,12 +53,11 @@ def extract_row(matrix, keyword, start_row=0, end_row=None):
                     ('cart' in clean_key and 'cart' in clean_cell)):
                     
                     data = []
-                    for i in range(c + 1, len(row)):
-                        v = clean_val(row[i])
-                        if v is not None or (len(data) > 0 and len(data) < 12):
-                            data.append(v)
-                        if len(data) == 12:
-                            break
+                    # A keyword geralmente está na coluna c.
+                    # Os 12 meses estão nas próximas 12 colunas (c+1 até c+12).
+                    for i in range(c + 1, min(c + 13, len(row))):
+                        data.append(clean_val(row[i]))
+                    
                     while len(data) < 12:
                         data.append(None)
                     return data
