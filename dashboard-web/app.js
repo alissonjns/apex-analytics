@@ -17,14 +17,35 @@ const API_BASE = AWS_CONFIG.apiUrl;
 
 // Initialize data on load
 document.addEventListener('DOMContentLoaded', () => {
-    if (checkAuthAndRedirect()) {
-        document.getElementById('loginScreen').classList.add('hidden');
-        fetchDashboardData();
-    } else {
-        document.getElementById('loginScreen').classList.remove('hidden');
-        document.getElementById('uploadScreen').classList.add('hidden');
-        document.getElementById('dashboardScreen').classList.add('hidden');
+    if (!checkAuthAndRedirect()) {
+        login(); // Force AWS login instantly
+        return;
     }
+    
+    // Token exists, parse it to show user role
+    const token = getToken();
+    let role = "Modo Visitante (Teste)";
+    let badgeColor = "#64748b"; // Cinza
+    
+    try {
+        const payloadB64 = token.split('.')[1];
+        const payloadJson = atob(payloadB64.replace(/-/g, '+').replace(/_/g, '/'));
+        const payload = JSON.parse(payloadJson);
+        const groups = payload['cognito:groups'] || [];
+        
+        if (groups.includes('Araujo-Admins')) {
+            role = "Administrador (Araujo)";
+            badgeColor = "#10b981"; // Verde sucesso
+        }
+    } catch(e) { console.error("Erro ao ler token", e); }
+    
+    const badge = document.getElementById('userRoleBadge');
+    if(badge) {
+        badge.innerText = role;
+        badge.style.background = badgeColor;
+    }
+    
+    fetchDashboardData();
 });
 
 // Fetch Data from Backend
