@@ -47,7 +47,8 @@ def extract_row(matrix, keyword, start_row=0, end_row=None):
         for c, cell in enumerate(row):
             if isinstance(cell, str):
                 clean_cell = normalize_str(cell)
-                if (clean_cell == clean_key or 
+                if ((clean_key in clean_cell and len(clean_key) > 3) or 
+                    (clean_cell == clean_key) or
                     ('antecipa' in clean_key and 'antecipa' in clean_cell) or 
                     ('cart' in clean_key and 'cart' in clean_cell)):
                     
