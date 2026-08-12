@@ -1,20 +1,20 @@
 :root {
-    --bg: #f4f6fa; /* Fundo principal mais suave */
-    --sidebar-bg: #2d3248; /* O azul-ardósia escuro da barra lateral da imagem */
+    --bg: #f2f5fb; /* Fundo exato da imagem */
+    --sidebar-bg: #63708f; /* Tom ardósia / slate da imagem original */
     --card-bg: #ffffff;
-    --border: #e9edf7;
-    --text: #333b54; /* Texto escuro, mas não preto */
-    --text-muted: #8892b0;
-    --accent: #4a6cf7; /* Azul corporativo, menos roxo */
-    --accent-hover: #3a5ce5;
-    --sidebar-text: #9ba4c4; /* Texto inativo da sidebar */
-    --sidebar-active: #ffffff; /* Texto ativo da sidebar */
-    --sidebar-active-bg: rgba(255, 255, 255, 0.1);
-    --success: #10b981;
+    --border: #e3e8f4;
+    --text: #414a63; /* Texto corporativo suave */
+    --text-muted: #8d97ad;
+    --accent: #4a7af7; /* Azul do botão e gráficos */
+    --accent-hover: #3b66d8;
+    --sidebar-text: #c8d1e3; /* Texto inativo da sidebar na imagem */
+    --sidebar-active: #ffffff; 
+    --sidebar-active-bg: rgba(255, 255, 255, 0.15);
+    --success: #36b37e;
     --danger: #ef4444;
     --warning: #f59e0b;
-    --glass: rgba(255, 255, 255, 0.95);
-    --shadow: 0px 4px 20px rgba(45, 50, 72, 0.05); /* Sombra mais elegante e sutil */
+    --glass: rgba(255, 255, 255, 1);
+    --shadow: 0px 5px 20px rgba(99, 112, 143, 0.08); /* Sombra exata da imagem */
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
