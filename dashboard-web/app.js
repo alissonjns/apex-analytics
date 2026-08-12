@@ -197,10 +197,10 @@ function updateChartVendasRO(data) {
     charts.vendasRO = new Chart(ctx, {
         type: 'bar',
         data: { labels: months, datasets: [
-            { label: 'Vendas Brutas', data: data.vendas, backgroundColor: '#4318ff', borderRadius: 4 },
-            { label: 'Resultado Operacional', data: data.ro, type: 'line', borderColor: '#05cd99', backgroundColor: '#05cd99', borderWidth: 3, tension: 0.4 }
+            { label: 'Vendas Brutas', data: data.vendas, backgroundColor: '#4a7af7', borderRadius: 4 },
+            { label: 'Resultado Operacional', data: data.ro, type: 'line', borderColor: '#36b37e', backgroundColor: '#36b37e', borderWidth: 3, tension: 0.4 }
         ]},
-        options: { responsive: true, scales: { y: { grid: { color: 'rgba(43, 54, 116, 0.05)' }, ticks: { color: '#a3aed1' } }, x: { grid: { display: false }, ticks: { color: '#a3aed1' } } }, plugins: { legend: { labels: { color: '#2b3674', font: { weight: '600' } } } } }
+        options: { responsive: true, scales: { y: { grid: { color: 'rgba(65, 74, 99, 0.05)' }, ticks: { color: '#8d97ad' } }, x: { grid: { display: false }, ticks: { color: '#8d97ad' } } }, plugins: { legend: { labels: { color: '#414a63', font: { weight: '600' } } } } }
     });
 }
 
@@ -214,8 +214,8 @@ function updateChartDespesas(data) {
     const outrasDespesas = totalDespesas - taxasCartao - taxasAntecip;
     charts.despesas = new Chart(ctx, {
         type: 'doughnut',
-        data: { labels: ['Taxa Cartão', 'Taxa Antecipação', 'Outras Despesas'], datasets: [{ data: [taxasCartao, taxasAntecip, outrasDespesas], backgroundColor: ['#ffce20', '#ee5d50', '#4318ff'], borderWidth: 0 }] },
-        options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#2b3674', font: { weight: '600' } } } } }
+        data: { labels: ['Taxa Cartão', 'Taxa Antecipação', 'Outras Despesas'], datasets: [{ data: [taxasCartao, taxasAntecip, outrasDespesas], backgroundColor: ['#f59e0b', '#ef4444', '#4a7af7'], borderWidth: 0 }] },
+        options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#414a63', font: { weight: '600' } } } } }
     });
 }
 
@@ -225,10 +225,10 @@ function updateChartDelivery(data) {
     charts.delivery = new Chart(ctx, {
         type: 'line',
         data: { labels: months, datasets: [
-            { label: 'Vendas Loja', data: data.vendas, borderColor: '#4318ff', backgroundColor: 'rgba(67, 24, 255, 0.1)', fill: true, tension: 0.4 },
-            { label: 'Vendas Delivery', data: data.delivery_vendas, borderColor: '#ffce20', backgroundColor: 'rgba(255, 206, 32, 0.1)', fill: true, tension: 0.4 }
+            { label: 'Vendas Loja', data: data.vendas, borderColor: '#4a7af7', backgroundColor: 'rgba(74, 122, 247, 0.1)', fill: true, tension: 0.4 },
+            { label: 'Vendas Delivery', data: data.delivery_vendas, borderColor: '#f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.1)', fill: true, tension: 0.4 }
         ]},
-        options: { responsive: true, scales: { y: { grid: { color: 'rgba(43, 54, 116, 0.05)' }, ticks: { color: '#a3aed1' } }, x: { grid: { display: false }, ticks: { color: '#a3aed1' } } }, plugins: { legend: { labels: { color: '#2b3674', font: { weight: '600' } } } } }
+        options: { responsive: true, scales: { y: { grid: { color: 'rgba(65, 74, 99, 0.05)' }, ticks: { color: '#8d97ad' } }, x: { grid: { display: false }, ticks: { color: '#8d97ad' } } }, plugins: { legend: { labels: { color: '#414a63', font: { weight: '600' } } } } }
     });
 }
 
