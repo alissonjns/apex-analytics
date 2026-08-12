@@ -1,4 +1,18 @@
-# Ignorar arquivos sensíveis
+# Ignorar planilhas de dados sensíveis
 *.xlsx
 *.xls
 *.csv
+
+# Ignorar Banco de Dados
+*.db
+*.sqlite3
+
+# Ignorar ambientes virtuais e cache do Python
+backend/venv/
+venv/
+__pycache__/
+*.pyc
+
+# Ignorar uploads e arquivos temporários
+backend/uploads/
+.env
