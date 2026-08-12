@@ -217,9 +217,15 @@ def get_rh_data(tenant_id="visitante"):
     import awswrangler as wr
     import os
     s3_bucket = os.environ.get("S3_BUCKET_NAME", "araujo-bi-datalake")
+    def safe_read(base_name):
+        try:
+            return wr.s3.read_parquet(path=f"s3://{s3_bucket}/clientes/{tenant_id}/bronze/{base_name}.parquet")
+        except Exception:
+            return wr.s3.read_parquet(path=f"s3://{s3_bucket}/clientes/{tenant_id}/bronze/{base_name}_.parquet")
+
     try:
-        df_folha = wr.s3.read_parquet(path=f"s3://{s3_bucket}/clientes/{tenant_id}/bronze/bronze_2_folha_de_pagamento_.parquet")
-        df_resc = wr.s3.read_parquet(path=f"s3://{s3_bucket}/clientes/{tenant_id}/bronze/bronze_3_rescisões_.parquet")
+        df_folha = safe_read("bronze_2_folha_de_pagamento")
+        df_resc = safe_read("bronze_3_rescisões")
     except Exception as e:
         return {'error': 'Dados não encontrados'}
 
@@ -262,8 +268,14 @@ def get_perdas_data(tenant_id="visitante"):
     import awswrangler as wr
     import os
     s3_bucket = os.environ.get("S3_BUCKET_NAME", "araujo-bi-datalake")
+    def safe_read(base_name):
+        try:
+            return wr.s3.read_parquet(path=f"s3://{s3_bucket}/clientes/{tenant_id}/bronze/{base_name}.parquet")
+        except Exception:
+            return wr.s3.read_parquet(path=f"s3://{s3_bucket}/clientes/{tenant_id}/bronze/{base_name}_.parquet")
+
     try:
-        df_perdas = wr.s3.read_parquet(path=f"s3://{s3_bucket}/clientes/{tenant_id}/bronze/bronze_5_perdas_.parquet")
+        df_perdas = safe_read("bronze_5_perdas")
     except Exception as e:
         return {'error': 'Dados não encontrados'}
         
