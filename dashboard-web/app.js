@@ -178,7 +178,11 @@ fileInput.addEventListener('change', async (e) => {
         if (result.error) {
             alert("Erro: " + result.error);
         } else {
-            // Upload com sucesso, agora busca os dados processados!
+            // Upload com sucesso - invalida todos os caches para forcar recarga limpa
+            dashboardDataCache = null;
+            receitasDataCache = null;
+            rhDataCache = null;
+            perdasDataCache = null;
             await fetchDashboardData();
         }
     } catch (err) {
