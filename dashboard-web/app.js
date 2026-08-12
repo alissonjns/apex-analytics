@@ -399,15 +399,18 @@ function updatePerdasView() {
         'Atendimento': sum(data.atendimento)
     };
     
-    const totPerdas = sum(data.total_perdas);
-    const totVendas = sum(data.total_vendas);
-    const impacto = totVendas ? (totPerdas / totVendas) * 100 : 0;
-    
     let worstSector = 'Nenhum';
     let worstVal = 0;
+    let fallbackTotalPerdas = 0;
     for(let k in perdasSetores) {
+        fallbackTotalPerdas += perdasSetores[k];
         if(perdasSetores[k] > worstVal) { worstVal = perdasSetores[k]; worstSector = k; }
     }
+    
+    // Se o ETL não achou a linha 'Total' ou 'Vendas', usamos as somas manuais
+    const totPerdas = sum(data.total_perdas) || fallbackTotalPerdas;
+    const totVendas = sum(data.total_vendas) || (globalData && globalData.data[year] ? sum(globalData.data[year].vendas) : 0);
+    const impacto = totVendas ? (totPerdas / totVendas) * 100 : 0;
     
     document.getElementById('kpiPerdaTotal').innerText = formatCurrency(totPerdas);
     document.getElementById('kpiSetorCritico').innerText = worstSector;
@@ -492,7 +495,7 @@ btnExportPDF.addEventListener('click', () => {
         let roPct = vendas ? (ro / vendas * 100).toFixed(1) : 0;
         let prev = globalData.insights.previsao_proximo_mes_vendas;
         content = `
-            <p>Este relatório apresenta um resumo executivo da performance da Padaria Araujo no ano de <strong>${year}</strong>.</p>
+            <p>Este relatório apresenta um resumo executivo da performance da empresa no ano de <strong>${year}</strong>.</p>
             <p>O faturamento bruto acumulado atingiu a marca de <strong>${formatMoney(vendas)}</strong>. O Resultado Operacional (RO), que representa a eficiência real de geração de caixa do negócio, fechou em <strong>${formatMoney(ro)}</strong> (uma margem de <strong>${roPct}%</strong>).</p>
             <p>Durante o período, identificamos através de nossos motores de inteligência que a empresa perdeu <strong>${formatMoney(globalData.insights.total_antecipacao)}</strong> diretamente em taxas de antecipação de cartão. O impacto dessa drenagem equivale a <strong>${formatPct(globalData.insights.impacto_antecipacao_pct)}</strong> de todo o Lucro Real acumulado no ano.</p>
             <p>Com base no comportamento histórico e aplicando Médias Móveis Ponderadas (WMA), o sistema preditivo projeta um faturamento bruto de <strong>${formatMoney(prev)}</strong> para o próximo mês, assumindo a manutenção das condições normais de operação.</p>
@@ -546,10 +549,7 @@ btnExportPDF.addEventListener('click', () => {
         if(!perdasDataCache || !perdasDataCache[year]) return alert("Dados não carregados.");
         const data = perdasDataCache[year];
         title = "Relatório de Controle de Perdas";
-        let totPerdas = sum(data.total_perdas);
-        let totVendas = sum(data.total_vendas);
-        let impacto = totVendas ? (totPerdas / totVendas * 100).toFixed(2) : 0;
-        
+        let fallbackTotal = 0;
         const perdasSetores = {
             'Confeitaria': sum(data.confeitaria),
             'Produção': sum(data.producao),
@@ -558,6 +558,12 @@ btnExportPDF.addEventListener('click', () => {
             'Sushi': sum(data.sushi),
             'Atendimento': sum(data.atendimento)
         };
+        for(let k in perdasSetores) { fallbackTotal += perdasSetores[k]; }
+        
+        let totPerdas = sum(data.total_perdas) || fallbackTotal;
+        let totVendas = sum(data.total_vendas) || (globalData && globalData.data[year] ? sum(globalData.data[year].vendas) : 0);
+        let impacto = totVendas ? (totPerdas / totVendas * 100).toFixed(2) : 0;
+        
         let worstSector = 'Nenhum';
         let worstVal = 0;
         for(let k in perdasSetores) {
@@ -578,7 +584,7 @@ btnExportPDF.addEventListener('click', () => {
         <div style="font-family: 'Inter', Helvetica, Arial, sans-serif; padding: 40px; color: #1e293b; background: white;">
             <div style="border-bottom: 3px solid #3b82f6; padding-bottom: 20px; margin-bottom: 30px;">
                 <h1 style="color: #0f172a; margin: 0; font-size: 28px; font-weight: 800;">Apex Analytics - Relatório de Inteligência</h1>
-                <p style="color: #64748b; margin: 5px 0 0 0; font-size: 16px; font-weight: 600;">Cliente: Padaria Araujo | Exercício: ${year}</p>
+                <p style="color: #64748b; margin: 5px 0 0 0; font-size: 16px; font-weight: 600;">Cliente: Apex Tenant | Exercício: ${year}</p>
             </div>
             <h2 style="color: #3b82f6; font-size: 22px; margin-bottom: 25px;">${title}</h2>
             <div style="font-size: 16px; line-height: 1.8; text-align: justify; color: #334155;">
