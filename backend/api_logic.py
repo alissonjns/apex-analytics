@@ -324,6 +324,22 @@ def get_perdas_data(tenant_id="visitante"):
             
     return {'data': results}
 
+def clear_tenant_data(tenant_id):
+    """Apaga todos os dados do S3 de um tenant especifico. Usado para limpar sandboxes de visitantes."""
+    import awswrangler as wr
+    import os
+    if tenant_id == "araujo":
+        return False # Proteção extra para nao apagar dados do admin
+        
+    s3_bucket = os.environ.get("S3_BUCKET_NAME", "araujo-bi-datalake")
+    try:
+        path = f"s3://{s3_bucket}/clientes/{tenant_id}/bronze/"
+        wr.s3.delete_objects(path)
+        return True
+    except Exception as e:
+        print(f"Erro ao limpar sandbox: {e}")
+        return False
+
 if __name__ == "__main__":
     import json
     print(json.dumps(get_dashboard_data(), indent=2))
