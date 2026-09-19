@@ -51,8 +51,8 @@ Você pode interagir com o ambiente de produção (Frontend via GitHub Pages con
 2. **Como o Usuário Visitante (Demo):**
    Ao acessar, você verá a tela de upload inicial. Para ver o Data Lake trabalhar, você precisará enviar dados.
    
-   - 📥 **[Baixe a Planilha de Demonstração (ZIP) Aqui](https://raw.githubusercontent.com/alissonjns/apex-analytics/main/Apex_Demo_Data.zip)**
-   - Extraia a pasta e faça o upload do arquivo Excel na tela do sistema. A AWS Lambda processará os dados em segundos e montará todo o dashboard.
+   - 📥 **[Baixe a Planilha de Demonstração Aqui](https://raw.githubusercontent.com/alissonjns/apex-analytics/main/Base_Demo_Baguncada.xlsx)**
+   - Faça o upload do arquivo Excel na tela do sistema. A AWS Lambda processará os dados em segundos e montará todo o dashboard.
 
 > [!WARNING]  
 > **Engenharia de Dados na Prática:** A base de demonstração para download acima não é uma planilha perfeita. Ela foi **gerada por Inteligência Artificial** com o intuito de ser **propositalmente caótica**: abas mal nomeadas (` 5_P e r d a s `), colunas em branco, formatações de moeda corrompidas (`" R$   2.500,45 "`) e lixo visual. 
