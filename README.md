@@ -25,7 +25,7 @@ O **Apex Analytics** atua como uma plataforma **SaaS Multi-Tenant**. Ele automat
 A infraestrutura foi desenhada para ser **100% Serverless** na AWS (Amazon Web Services), garantindo que o custo operacional seja zero quando a plataforma não estiver em uso, mas com capacidade de escalar instantaneamente para milhares de requisições.
 
 ### Por que Serverless e AWS?
-A decisão pela arquitetura Serverless (Lambda + API Gateway + S3) foi pautada na **escalabilidade e eficiência de custos**. Não há servidores ociosos para gerenciar. O armazenamento no S3 como Data Lake oferece durabilidade de 99.9999999% e armazenamento virtualmente infinito a custos centavos.
+A decisão pela arquitetura Serverless (Lambda + API Gateway + S3) foi pautada na **escalabilidade e eficiência de custos**. Não há servidores ociosos para gerenciar. O armazenamento no S3 atua como um Data Lake de **alta disponibilidade e segurança (padrão enterprise)**, oferecendo escalabilidade virtualmente infinita a custos na casa de centavos.
 
 ### 🛠 Stack Tecnológico
 * **Backend & ETL:** Python 3, FastAPI, Pandas, AWS Data Wrangler (awswrangler)
